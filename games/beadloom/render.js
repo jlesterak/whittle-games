@@ -10,7 +10,7 @@ import { SpriteSet, drawSprite, drawSwapArrows, drawLock, drawKey, drawDispenser
 import { CRATE, DISP, WALL as NOCELL } from '../../engines/slotsort/board.js';
 import { CRATE_ROWS } from './rules.js';
 
-// Headroom above y=0 kept on screen: the feeder arms start at y=-60 and end in a rounded cap.
+// Headroom above y=0 kept on screen: the HUD row (gear, level, coins) sits in it, clear of the track.
 export const FIT = { W, H, top: 160 };
 
 export const LAYOUT = {
@@ -168,35 +168,6 @@ export class Renderer {
     this.level = level;
     this.sim = sim;
     this.track = buildTrack(level.ring.shape, level.ring.rows);
-    // Extend each feeder a short way past its mouth ALONG the ring curve (not the straight
-    // tangent, which bulges into the hole). The channel then merges into the ring with no wall
-    // seam and no lump. Precomputed once per level; the static layer uses it.
-    this.feederExt = this.track.feeders.map((fp) => {
-      const r = this.track.ring;
-      let m = 0;
-      let best = Infinity;
-      for (let i = 0; i < r.count; i++) {
-        const dx = r.xs[i] - fp.xs[0];
-        const dy = r.ys[i] - fp.ys[0];
-        const d = dx * dx + dy * dy;
-        if (d < best) {
-          best = d;
-          m = i;
-        }
-      }
-      // step along the ring in the direction the feeder's flow continues
-      const fdx = fp.xs[0] - fp.xs[1];
-      const fdy = fp.ys[0] - fp.ys[1];
-      const dot = (i) => (r.xs[i] - r.xs[m]) * fdx + (r.ys[i] - r.ys[m]) * fdy;
-      const step = dot((m + 1) % r.count) >= dot((m - 1 + r.count) % r.count) ? 1 : -1;
-      const steps = Math.max(1, Math.round((CHANNEL * 0.45) / r.ds));
-      const ext = [];
-      for (let s = steps; s >= 1; s--) {
-        const i = (m + step * s + r.count * 20) % r.count;
-        ext.push([r.xs[i], r.ys[i]]);
-      }
-      return ext;
-    });
     this.theme = THEMES[level.theme % THEMES.length];
     const N = level.ring.rows;
     // draw ring positions back to front (top of screen first) for the 3D overlap
@@ -241,27 +212,19 @@ export class Renderer {
 
     // track: shadows, walls, then channels, so feeders and ring merge into one channel
     const paths = [
-      [this.track.ring, true, null],
-      [this.track.feeders[0], false, this.feederExt[0]],
-      [this.track.feeders[1], false, this.feederExt[1]],
+      [this.track.ring, true],
+      [this.track.feeders[0], false],
+      [this.track.feeders[1], false],
     ];
     const stroke = (lw, style, dy = 0) => {
       g.lineWidth = lw;
       g.strokeStyle = style;
       g.lineJoin = 'round';
-      g.lineCap = 'round'; // the feeder arms end in a rounded cap inside the headroom
-      for (const [p, closed, ext] of paths) {
+      g.lineCap = 'round'; // the feeder arms end in a rounded cap; their mouth ends sit inside the ring channel
+      for (const [p, closed] of paths) {
         g.beginPath();
-        if (ext && ext.length) {
-          // run the feeder a little way into the ring ALONG the ring curve, then up the feeder, so
-          // the channels merge with no wall seam and no lump. Bead positions are untouched.
-          g.moveTo(ext[0][0], ext[0][1] + dy);
-          for (let k = 1; k < ext.length; k++) g.lineTo(ext[k][0], ext[k][1] + dy);
-          for (let i = 0; i < p.count; i++) g.lineTo(p.xs[i], p.ys[i] + dy);
-        } else {
-          for (let i = 0; i < p.count; i++) g[i ? 'lineTo' : 'moveTo'](p.xs[i], p.ys[i] + dy);
-          if (closed) g.closePath();
-        }
+        for (let i = 0; i < p.count; i++) g[i ? 'lineTo' : 'moveTo'](p.xs[i], p.ys[i] + dy);
+        if (closed) g.closePath();
         g.stroke();
       }
     };
@@ -401,7 +364,7 @@ export class Renderer {
         break;
       case 'feederReveal': {
         if (rm) break;
-        const p = samplePath(this.track.feeders[e.feeder], 5 * this.track.pitch, false, this.pt);
+        const p = samplePath(this.track.feeders[e.feeder], this.track.queueStart[e.feeder] + 5 * this.track.pitch, false, this.pt);
         for (let i = 0; i < 5; i++) {
           this.parts.spawn(P_QMARK, p.x + (Math.random() - 0.5) * 60, p.y, (Math.random() - 0.5) * 80, -140 - Math.random() * 80, 0.7, 34);
         }
@@ -487,8 +450,8 @@ export class Renderer {
     const rows = sim.supply.rows;
     for (let f = 0; f < 2; f++) this.feederShift[f] = Math.max(0, this.feederShift[f] - dt * Math.max(10, rows * 1.3));
 
-    this.drawFeeders(g);
     this.drawRing(g);
+    this.drawFeeders(g); // over the ring, so the waiting rows at each mouth stay in view
     this.drawBoard(g, now);
     this.drawSlots(g, now);
     this.drawFlights(g, now);
@@ -531,14 +494,17 @@ export class Renderer {
     for (let f = 0; f < 2; f++) {
       const fd = sup.feeders[f];
       const path = tr.feeders[f];
+      const s0 = tr.queueStart[f] + 0.5 * tr.pitch; // the front row sits just clear of the ring
+      const end = path.length - 30; // rows past this are inside the arm's end cap
       const shift = this.feederShift[f];
-      const visible = Math.min(fd.colors.length - fd.head, Math.ceil(path.length / tr.pitch) + 1);
+      const visible = Math.min(fd.colors.length - fd.head, Math.ceil((end - s0) / tr.pitch) + 1);
+      const at = (h) => s0 + (h + shift) * tr.pitch;
       for (let h = visible - 1; h >= 0; h--) {
         const idx = fd.head + h;
         const c = fd.colors[idx];
         const hid = fd.hidden[fd.seg[idx]];
-        samplePath(path, (h + 1.9 + shift) * tr.pitch, false, pt);
-        if (pt.y < -40) continue; // inside the arm's end cap
+        if (at(h) > end) continue;
+        samplePath(path, at(h), false, pt);
         const spr = hid ? sp.hidden : sp.beads[c];
         this.drawBeadRow(g, pt.x, pt.y, pt.nx, pt.ny, spr, hid || (idx & 1) ? spr : sp.beadsSym[c], idx & 1);
       }
@@ -547,9 +513,9 @@ export class Renderer {
       for (let h = 0; h < visible; h++) {
         const idx = fd.head + h;
         run = h > 0 && fd.seg[idx] === fd.seg[idx - 1] ? run + 1 : 0;
-        if (run === 4 && fd.hidden[fd.seg[idx]]) {
-          samplePath(path, (h + 1.9 + shift) * tr.pitch, false, pt);
-          if (pt.y > -40) drawSprite(g, sp.qmark, pt.x, pt.y);
+        if (run === 4 && fd.hidden[fd.seg[idx]] && at(h) <= end) {
+          samplePath(path, at(h), false, pt);
+          drawSprite(g, sp.qmark, pt.x, pt.y);
         }
       }
     }

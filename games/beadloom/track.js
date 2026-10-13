@@ -1,7 +1,7 @@
 // Track geometry in design pixels (1080x2316 portrait). Pure, so the generator (Node) and the
 // renderer share it. The ring is a closed centreline sampled every STEP px by arc length,
 // starting at the spout (bottom centre) and running counter-clockwise on screen.
-// Feeder paths are polylines sampled from their mouth backwards up to above the screen.
+// Feeder paths are polylines sampled from their mouth backwards up to the arm's capped top.
 
 export const W = 1080;
 export const H = 2316;
@@ -46,25 +46,27 @@ function roundedRect(w, h, rc) {
   return pts;
 }
 
-// Shape families. Each takes one size parameter that the length fit solves for.
+// The ring lives in a box under the HUD (centreline top >= BOTTOM - HMAX) and narrow enough
+// that both feeder arms fit beside it (WMAX). A shape grows its box along one parameter s >= 0
+// until the centreline is n rows long; the smallest box is the circle of radius RC, so the hole
+// never collapses (the old scaled-down and pinched shapes squashed it shut).
+const MIN = 2 * RC;
+const WMAX = 420;
+const HMAX = 600;
+const box = (w, h) => roundedRect(w, h, Math.min(RC, w / 2, h / 2));
 const SHAPES = {
-  // A tall "O" (level 2796): stadium, height grows with length.
-  O: { param: [2 * RC, 900], make: (h) => roundedRect(2 * RC, h, RC), mouthAt: 0.42 },
-  // A wide rounded ring for long tracks.
-  wide: { param: [2 * RC, 760], make: (w) => roundedRect(w, 470, RC), mouthAt: 0.42 },
-  // An hourglass (level 2414): the wide ring pinched above mid-height; feeders join the lower lobe.
-  hourglass: {
-    param: [2 * RC, 800],
-    make: (w) =>
-      roundedRect(w, 500, RC).map(([x, y]) => {
-        const k = 1 - 0.42 * Math.exp(-(((y - (BOTTOM - 300)) / 95) ** 2));
-        return [CX + (x - CX) * k, y];
-      }),
-    mouthAt: 0.24,
+  // A tall "O" (level 2796): stadium, height grows first.
+  O: (s) => box(MIN + Math.max(0, s - (HMAX - MIN)), MIN + Math.min(s, HMAX - MIN)),
+  // A wide rounded ring: width grows first.
+  wide: (s) => box(MIN + Math.min(s, WMAX - MIN), MIN + Math.max(0, s - (WMAX - MIN))),
+  // A rounder, squarer donut: both grow together, then height.
+  squareO: (s) => {
+    const a = Math.min(s, WMAX - MIN);
+    const r = s - a;
+    return box(MIN + a + Math.max(0, r - (HMAX - WMAX)), MIN + a + Math.min(r, HMAX - WMAX));
   },
-  // A rounder, squarer donut for variety.
-  squareO: { param: [2 * RC, 760], make: (s) => roundedRect(s, s * 0.82, RC), mouthAt: 0.42 },
 };
+SHAPES.hourglass = SHAPES.wide; // older levels name it; the pinch closed the hole
 
 function polyLength(pts, closed) {
   let L = 0;
@@ -137,41 +139,55 @@ function cubic(p0, c1, c2, p1, out) {
 // Which shape suits a ring of n rows (the generator stores the result in the level).
 export function shapeFor(n, variant = 0) {
   if (variant <= 4) return 'O'; // teach on the clean O for the first few levels
-  const cycle = ['wide', 'O', 'hourglass', 'squareO', 'O', 'wide', 'hourglass', 'squareO'];
+  const cycle = ['wide', 'O', 'squareO', 'O', 'wide', 'squareO'];
   return cycle[variant % cycle.length];
 }
 
 const cache = new Map();
 
+// Feeder arms: as far out as the screen allows (at least ARM_GAP from the ring's side, so the
+// right arm's U-turn has room), the merge angle against the ring's direction of travel, and the
+// height of both mouths above the spout.
+const ARM_GAP = CHANNEL + 2 * WALL + 20;
+const ARM_X = W / 2 - CHANNEL / 2 - WALL - 14; // arm centre's furthest distance from CX
+const MERGE = (50 * Math.PI) / 180;
+const MOUTH_Y = BOTTOM - 150;
+const ARM_TOP = 40; // the arms' rounded caps sit just under the HUD row
+
 // Build the ring of n rows for a shape: samples, pitch, mouth indices and feeder paths.
 export function buildTrack(shape, n) {
   const key = `${shape}:${n}`;
   if (cache.has(key)) return cache.get(key);
-  const def = SHAPES[shape] || SHAPES.O;
+  const make = SHAPES[shape] || SHAPES.O;
   const target = n * ROW_PITCH;
-  // Fit the size parameter so the centreline is n rows long (shrink to a circle if short).
-  let lo = def.param[0];
-  let hi = def.param[1];
-  let pts = def.make(lo);
+  let pts = make(0);
   if (polyLength(pts, true) > target) {
-    // shorter than the minimum shape: scale the minimum shape down about the spout
+    // shorter than the smallest circle: a smaller circle
     const k = target / polyLength(pts, true);
     pts = pts.map(([x, y]) => [CX + (x - CX) * k, BOTTOM + (y - BOTTOM) * k]);
   } else {
+    let lo = 0;
+    let hi = 2000;
     for (let it = 0; it < 40; it++) {
       const mid = (lo + hi) / 2;
-      if (polyLength(def.make(mid), true) < target) lo = mid;
+      if (polyLength(make(mid), true) < target) lo = mid;
       else hi = mid;
     }
-    pts = def.make((lo + hi) / 2);
+    pts = make((lo + hi) / 2);
   }
   const ring = resample(pts, true);
   const pitch = ring.length / n;
 
   let top = Infinity;
-  for (let i = 0; i < ring.count; i++) top = Math.min(top, ring.ys[i]);
-  const mouthY = BOTTOM - (BOTTOM - top) * def.mouthAt;
+  let left = Infinity;
+  let right = -Infinity;
+  for (let i = 0; i < ring.count; i++) {
+    top = Math.min(top, ring.ys[i]);
+    left = Math.min(left, ring.xs[i]);
+    right = Math.max(right, ring.xs[i]);
+  }
   // Right mouth: on the right side going up; left mouth: on the left side going down.
+  const mouthY = Math.max(MOUTH_Y, top + (BOTTOM - top) * 0.3);
   let iR = -1;
   let iL = -1;
   for (let i = 1; i < ring.count; i++) {
@@ -180,6 +196,9 @@ export function buildTrack(shape, n) {
   }
   const mouthR = Math.round((iR * ring.ds) / pitch) % n;
   const mouthL = Math.round((iL * ring.ds) / pitch) % n;
+  const feeders = [feederPath(ring, iR, +1, Math.max(right + ARM_GAP, CX + ARM_X), (top + BOTTOM) / 2),
+    feederPath(ring, iL, -1, Math.min(left - ARM_GAP, CX - ARM_X), (top + BOTTOM) / 2),
+  ];
 
   const t = {
     shape,
@@ -189,15 +208,30 @@ export function buildTrack(shape, n) {
     mouthR,
     mouthL,
     top,
-    feeders: [feederPath(ring, iR, +1), feederPath(ring, iL, -1)],
+    feeders,
+    // arc distance along each feeder where its queue starts: just clear of the ring's channel,
+    // so waiting beads never sit under (or on) the ring's beads
+    queueStart: feeders.map((f) => clearOf(ring, f, CHANNEL / 2 + 6)),
   };
   cache.set(key, t);
   return t;
 }
 
-// A feeder comes down from its capped end (just above design y=0, inside the headroom) beside the ring and merges at sample index i,
-// arriving along the ring's direction of travel. side +1 = right (U-turn), -1 = left (S-bend).
-function feederPath(ring, i, side) {
+// First arc distance along feeder f (from its mouth) whose centreline is at least d from the ring's.
+function clearOf(ring, f, d) {
+  for (let j = 0; j < f.count; j++) {
+    let best = Infinity;
+    for (let i = 0; i < ring.count; i += 2) best = Math.min(best, Math.hypot(ring.xs[i] - f.xs[j], ring.ys[i] - f.ys[j]));
+    if (best >= d) return j * f.ds;
+  }
+  return 0;
+}
+
+// A feeder comes straight down its arm at x = ax from its capped top (ARM_TOP) and merges at ring
+// sample i, arriving at MERGE degrees to the ring's direction of travel from outside, so the
+// junction is short and the arm keeps its own wall. side +1 = right (U-turn under the mouth),
+// -1 = left (a bend in).
+function feederPath(ring, i, side, ax, midY) {
   const M = [ring.xs[i], ring.ys[i]];
   const j = (i + 3) % ring.count;
   const k = (i - 3 + ring.count) % ring.count;
@@ -206,21 +240,33 @@ function feederPath(ring, i, side) {
   const l = Math.hypot(tx, ty);
   tx /= l;
   ty /= l;
-  const gap = CHANNEL + 2 * WALL + 8;
-  const fx = M[0] + side * gap;
-  const fwd = []; // from above the screen down to the mouth
-  const start = [fx, -60];
-  if (side > 0) {
-    const p1 = [fx, M[1]];
-    fwd.push(start);
-    cubic(start, start, p1, p1, fwd);
-    cubic(p1, [fx, M[1] + 120], [M[0] - tx * 120, M[1] - ty * 120], M, fwd);
-  } else {
-    const p1 = [fx, M[1] - 170];
-    fwd.push(start);
-    cubic(start, start, p1, p1, fwd);
-    cubic(p1, [fx, M[1] - 80], [M[0] - tx * 90, M[1] - ty * 90], M, fwd);
+  // outward normal: away from the ring's middle
+  let ox = -ty;
+  let oy = tx;
+  if (ox * (M[0] - CX) + oy * (M[1] - midY) < 0) {
+    ox = -ox;
+    oy = -oy;
   }
+  const c = Math.cos(MERGE);
+  const s = Math.sin(MERGE);
+  const dx = tx * c - ox * s; // arrival direction, pointing into the ring
+  const dy = ty * c - oy * s;
+  const E = 70; // straight run into the mouth
+  const P = [M[0] - dx * E, M[1] - dy * E];
+  const fwd = []; // from the arm's top down to the mouth
+  const start = [ax, ARM_TOP];
+  fwd.push(start);
+  if (side > 0) {
+    // down the arm, round the U under the mouth, up into the ring
+    const b = [ax, P[1] - 30];
+    cubic(start, start, b, b, fwd);
+    cubic(b, [ax, b[1] + 150], [P[0] - dx * 150, P[1] - dy * 150], P, fwd);
+  } else {
+    const b = [ax, P[1] - 150];
+    cubic(start, start, b, b, fwd);
+    cubic(b, [ax, b[1] + 90], [P[0] - dx * 90, P[1] - dy * 90], P, fwd);
+  }
+  cubic(P, P, M, M, fwd);
   fwd.reverse(); // index 0 at the mouth
   return resample(fwd, false);
 }
