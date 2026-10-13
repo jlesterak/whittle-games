@@ -1,0 +1,15 @@
+node_modules/
+.DS_Store
+*.zip
+*.mp4
+videos/
+_archive-*/
+.work/
+# reverse-engineering reference material and teardown specs stay out of the public repo
+docs/ref/
+docs/beadloom-spec.md
+docs/purl-spec.md
+docs/dotwork-spec.md
+docs/yacht-spec.md
+Screenshot_*.jpg
+.http.log
