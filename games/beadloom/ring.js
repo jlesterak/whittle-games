@@ -191,6 +191,32 @@ export class RingSupply {
     };
   }
 
+  // A saved supply that doesn't fit this level throws (SlotSim.load calls this before changing anything).
+  check(d) {
+    const ok =
+      d &&
+      Array.isArray(d.ring) &&
+      d.ring.length === this.N &&
+      d.ring.every((c) => Number.isInteger(c) && c >= -1 && c < this.ringCount.length) &&
+      Number.isInteger(d.offset) &&
+      d.offset >= 0 &&
+      d.offset < this.N &&
+      Number.isFinite(d.phase) &&
+      Array.isArray(d.feeders) &&
+      d.feeders.length === 2 &&
+      d.feeders.every(
+        (f) =>
+          f &&
+          Array.isArray(f.colors) &&
+          Array.isArray(f.seg) &&
+          Array.isArray(f.hidden) &&
+          f.seg.length === f.colors.length &&
+          f.colors.every((c) => Number.isInteger(c) && c >= 0 && c < this.ringCount.length) &&
+          f.seg.every((k) => Number.isInteger(k) && k >= 0 && k < f.hidden.length),
+      );
+    if (!ok) throw new Error('bad save: supply');
+  }
+
   load(d) {
     this.ring = Int8Array.from(d.ring);
     this.recount();

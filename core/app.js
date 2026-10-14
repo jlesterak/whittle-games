@@ -85,6 +85,9 @@ async function openGame(meta) {
   }
   if (token !== opening) return; // navigated away while loading
   const game = mod.default;
+  // what the save held before this start, so "Start fresh" can keep the original even if mount() wrote first
+  const before = save.store(meta.id).get();
+  const snapshot = before === null ? undefined : structuredClone(before);
   const ctx = {
     root,
     meta,
@@ -103,13 +106,13 @@ async function openGame(meta) {
   } catch (e) {
     console.error(e);
     current = { meta, game, instance: null };
-    showLoadFail(root, meta);
+    showLoadFail(root, meta, snapshot);
   }
 }
 
 // A game that throws while starting is most likely tripping over its save. Offer a way out that keeps the save:
 // export it, or start the game fresh with the old blob set aside as '<id>.broken' (it stays in exports).
-function showLoadFail(root, meta) {
+function showLoadFail(root, meta, snapshot) {
   root.replaceChildren(
     el(
       'div',
@@ -125,7 +128,7 @@ function showLoadFail(root, meta) {
           {
             class: 'btn btn-primary',
             onclick: () => {
-              save.quarantine(meta.id);
+              save.quarantine(meta.id, snapshot);
               openGame(meta);
             },
           },
@@ -153,15 +156,31 @@ function openSettings({ meta, game, extra } = {}) {
     rows.push(choiceRow(s.label, settings.get(key, s.default), s.options, (v) => settings.set(key, v)));
   }
   const file = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
-  file.addEventListener('change', async () => {
-    if (!file.files[0]) return;
-    try {
-      await save.importSave(file.files[0]);
-      toast('Save imported');
-      setTimeout(() => location.reload(), 600);
-    } catch (e) {
-      toast(e.message || 'Import failed');
-    }
+  file.addEventListener('change', () => {
+    const f = file.files[0];
+    if (!f) return;
+    file.value = ''; // the same file can be picked again
+    modal({
+      title: 'Replace your saves?',
+      body: [el('p', {}, 'Every game will use the progress in this file. A copy of your current saves is kept, and the next Export includes it.')],
+      actions: [
+        { label: 'Cancel' },
+        {
+          label: 'Replace',
+          primary: true,
+          onClick: async (close) => {
+            close();
+            try {
+              await save.importSave(f);
+              toast('Save imported');
+              setTimeout(() => location.reload(), 600);
+            } catch (e) {
+              toast(e.message || 'Import failed');
+            }
+          },
+        },
+      ],
+    });
   });
   rows.push(
     el(

@@ -164,6 +164,17 @@ export class ColumnSupply {
     return { lanes: this.lanes.map((l) => l.stack.slice()) };
   }
 
+  // A saved supply that doesn't fit this level throws (SlotSim.load calls this before changing anything).
+  check(d) {
+    const ok =
+      d &&
+      Array.isArray(d.lanes) &&
+      d.lanes.length >= this.C &&
+      d.lanes.length <= this.C + HOOKS &&
+      d.lanes.every((s) => Array.isArray(s) && s.every((c) => Number.isInteger(c) && c >= 0));
+    if (!ok) throw new Error('bad save: supply');
+  }
+
   load(d) {
     this.lanes = d.lanes.map((stack) => ({ stack: stack.slice(), run: null }));
     while (this.lanes.length < this.C + HOOKS) this.lanes.push({ stack: [], run: null });

@@ -27,13 +27,19 @@ test('a good record loads as it is, with nothing set aside (past bug: every reco
   assert.equal(map.has(mod.BROKEN_KEY), false);
 });
 
-test('an unreadable record is kept aside before a fresh one replaces it', async () => {
+test('an unreadable record is kept aside before a fresh one replaces it, the last three of them', async () => {
   const { mod, map, record } = await loadSave({ [KEY]: '{oops' });
   assert.deepEqual(mod.allSettings(), {});
-  assert.equal(map.get(mod.BROKEN_KEY), '{oops');
+  const kept = () => JSON.parse(map.get(mod.BROKEN_KEY)).map((k) => k.raw);
+  assert.deepEqual(kept(), ['{oops']);
   mod.setSetting('sound', false);
   assert.equal(record().settings.sound, false);
-  assert.equal(map.get(mod.BROKEN_KEY), '{oops', 'the copy survives the next write');
+  assert.deepEqual(kept(), ['{oops'], 'the copy survives the next write');
+  for (const raw of ['{a', '{b', '{c']) {
+    map.set(KEY, raw);
+    await import(`../core/save.js?copy=${copies++}`);
+  }
+  assert.deepEqual(kept(), ['{c', '{b', '{a'], 'newest first, three kept');
 });
 
 test('a record with the wrong shapes is repaired, and games only ever get plain objects', async () => {
@@ -46,38 +52,57 @@ test('a record with the wrong shapes is repaired, and games only ever get plain 
   assert.equal(nullGames.mod.store('beadloom').get(), null);
 });
 
-test('cleanSave keeps what fits the fresh shape and resets the rest', async () => {
+test('cleanSave keeps what fits the fresh shape, reads numbers leniently, resets the rest and says what it changed', async () => {
   const { mod } = await loadSave();
   const fresh = { level: 1, coins: 0, boosters: { slot: 3, lift: 3 }, best: {}, zoomTip: false, inProgress: null };
-  assert.deepEqual(mod.cleanSave(null, fresh), fresh);
-  assert.deepEqual(mod.cleanSave('garbage', fresh), fresh);
+  const changed = [];
+  assert.deepEqual(mod.cleanSave(null, fresh, changed), fresh);
+  assert.deepEqual(changed, [], 'no save is not a damaged save');
+  assert.deepEqual(mod.cleanSave({ level: 4 }, fresh, changed), { ...fresh, level: 4 });
+  assert.deepEqual(changed, [], 'missing fields are filled in quietly');
+  assert.deepEqual(mod.cleanSave('garbage', fresh, changed), fresh);
+  assert.deepEqual(changed, ['(blob)']);
+  changed.length = 0;
   const out = mod.cleanSave(
-    { level: 'x', coins: -4, boosters: { slot: 2.5, lift: 7 }, best: { 3: 2 }, zoomTip: 'yes', inProgress: 'zzz', extra: [1] },
+    { level: 'x', coins: -4, boosters: { slot: 2.5, lift: '7' }, best: { 3: 2 }, zoomTip: 'yes', inProgress: 'zzz', extra: [1] },
     fresh,
+    changed,
   );
-  assert.deepEqual(out, { level: 1, coins: 0, boosters: { slot: 3, lift: 7 }, best: { 3: 2 }, zoomTip: false, inProgress: null, extra: [1] });
+  assert.deepEqual(out, { level: 1, coins: 0, boosters: { slot: 2, lift: 7 }, best: { 3: 2 }, zoomTip: false, inProgress: null, extra: [1] });
+  assert.deepEqual(changed.sort(), ['boosters.lift', 'boosters.slot', 'coins', 'inProgress', 'level', 'zoomTip']);
   assert.deepEqual(mod.cleanSave({ inProgress: { level: 2 }, boosters: null }, fresh).inProgress, { level: 2 });
   assert.deepEqual(mod.cleanSave({ boosters: null }, fresh).boosters, { slot: 3, lift: 3 });
+  assert.deepEqual(mod.cleanSave({ level: '40', coins: ' 500 ' }, fresh), { ...fresh, level: 40, coins: 500 });
   const saved = { level: 4, boosters: { slot: 1 } };
   mod.cleanSave(saved, fresh);
   assert.deepEqual(saved, { level: 4, boosters: { slot: 1 } }, 'the input is not changed');
 });
 
-test('importSave takes only Whittle save files', async () => {
-  const { mod, record } = await loadSave();
+test('importSave takes only Whittle save files, keeps their settings, and backs up what it replaces', async () => {
+  const { mod, map, record } = await loadSave({ [KEY]: JSON.stringify({ v: 1, settings: { sound: false }, games: { dotwork: { level: 9 } } }) });
   const file = (text) => ({ text: async () => text });
   for (const bad of ['not json', '[]', JSON.stringify({ app: 'other', games: {} }), JSON.stringify({ app: 'whittle', games: 'x' })]) {
     await assert.rejects(mod.importSave(file(bad)), /not a Whittle save file/);
   }
-  await mod.importSave(file(JSON.stringify({ app: 'whittle', settings: 5, games: { yacht: { game: null } } })));
-  assert.deepEqual(record(), { v: 1, settings: {}, games: { yacht: { game: null } } });
+  assert.deepEqual(JSON.parse(map.get(KEY)).games, { dotwork: { level: 9 } }, 'a rejected file changes nothing');
+  await mod.importSave(file(JSON.stringify({ app: 'whittle', settings: { haptics: false }, games: { yacht: { game: null } } })));
+  assert.deepEqual(record(), { v: 1, settings: { haptics: false }, games: { yacht: { game: null } } });
+  assert.deepEqual(JSON.parse(map.get(mod.BEFORE_IMPORT_KEY)).games, { dotwork: { level: 9 } }, 'the replaced saves are kept');
+  await mod.importSave(file(JSON.stringify({ app: 'whittle', settings: 5, games: {} })));
+  assert.deepEqual(record().settings, {}, 'settings that are not an object are dropped');
 });
 
-test('quarantine sets a game blob aside and the game starts fresh', async () => {
+test('quarantine and keep file copies under <id>.broken, newest first, three at most', async () => {
   const { mod, record } = await loadSave({ [KEY]: JSON.stringify({ v: 1, settings: {}, games: { purl: { level: 'x' } } }) });
+  const blobs = () => record().games['purl.broken'].map((k) => k.blob);
   mod.quarantine('purl');
   assert.equal(mod.store('purl').get(), null);
-  assert.deepEqual(record().games, { 'purl.broken': { level: 'x' } });
+  assert.deepEqual(blobs(), [{ level: 'x' }]);
+  mod.store('purl').set({ level: 2 });
+  mod.quarantine('purl', { level: 77, coins: 4321 }); // the blob from before a failed start, not the current one
+  assert.deepEqual(blobs(), [{ level: 77, coins: 4321 }, { level: 'x' }]);
+  for (const level of [3, 4]) mod.store('purl').keep({ level });
+  assert.deepEqual(blobs(), [{ level: 4 }, { level: 3 }, { level: 77, coins: 4321 }]);
 });
 
 test('cleanPlayers: known kinds and levels, short names, a count the game can play', () => {

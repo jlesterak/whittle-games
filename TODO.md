@@ -7,7 +7,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 
 ## [IN PROGRESS]
 - P5 Beadloom track junction (done; waiting for the reviewer)
-- P3 Save safety (done; waiting for the reviewer)
 
 ## [PENDING]
 - P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
@@ -28,6 +27,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: P3 save safety: repaired record, cleanSave/cleanPlayers, refused damaged resumes, kept copies
+  (<id>.broken, three deep), could-not-start card, import confirm + backup; smoke --saves 57 cases + fallback
 - 2026-10-14: P4 6-column Beadloom boards: already worked (old TODO item stale); checked headless, layout test added
 - 2026-10-14: P2 whole updates: VERSION is a content hash, a new worker waits for the shelf's Update ready /
   Reload, other tabs move over when they leave their game; smoke --sw covers offline, mid-game and two tabs

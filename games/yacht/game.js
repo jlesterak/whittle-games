@@ -59,6 +59,13 @@ export default {
       game: isPlain(stored.game) ? stored.game : null,
       high: { ...high, classic: scores(high.classic), triple: scores(high.triple) },
     };
+    // anything that was there but had to be dropped: keep a copy of the original before it is saved over
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const dropped =
+      (stored.setup !== undefined && !same(stored.setup?.players, save.setup.players)) ||
+      (stored.game !== undefined && stored.game !== null && save.game === null) ||
+      (stored.high !== undefined && (!isPlain(stored.high) || ['classic', 'triple'].some((k) => k in high && !same(high[k], save.high[k]))));
+    if (dropped) ctx.store.keep(stored);
     const rng = makeRng((Date.now() ^ (Math.random() * 2 ** 32)) >>> 0);
     const params = new URLSearchParams(location.search);
     const autoplay = params.has('autoplay'); // humans are played by the Hard bot, fast (testing)
@@ -216,8 +223,8 @@ export default {
       beginTurn();
     }
 
-    // A saved game that can't be played (a bug, or a hand-edited import) is kept as brokenGame and the setup
-    // screen comes back, rather than a crash.
+    // A saved game that can't be played (a bug, or a hand-edited import) is kept under 'yacht.broken' and the
+    // setup screen comes back, rather than a crash.
     function resumeGame() {
       try {
         g = save.game;
@@ -231,7 +238,7 @@ export default {
         beginTurn();
       } catch (e) {
         console.warn('yacht: could not resume', e);
-        save.brokenGame = save.game;
+        ctx.store.keep({ game: save.game });
         g = null;
         save.game = null;
         persist();

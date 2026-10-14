@@ -341,11 +341,11 @@ export const BAD_RECORDS = {
 };
 const KEY = 'whittle:v1';
 
-async function savesCheck(browser, base, out, jobs) {
-  const ids = games.map((g) => g.id);
+async function savesCheck(browser, base, out, jobs, only) {
+  const ids = games.map((g) => g.id).filter((id) => !only || only.includes(id));
   const queue = [
     ...ids.flatMap((id) => Object.entries(BAD_SAVES).map(([name, blob]) => ({ id, name, raw: JSON.stringify({ v: 1, settings: {}, games: { [id]: blob } }) }))),
-    ...['shelf', ...ids].flatMap((id) => Object.entries(BAD_RECORDS).map(([name, raw]) => ({ id, name: `record ${name}`, raw }))),
+    ...['shelf', ...ids].filter((id) => !only || only.includes(id)).flatMap((id) => Object.entries(BAD_RECORDS).map(([name, raw]) => ({ id, name: `record ${name}`, raw }))),
   ];
   let failed = 0;
   const worker = async () => {
@@ -383,10 +383,52 @@ async function savesCheck(browser, base, out, jobs) {
     }
   };
   await Promise.all(Array.from({ length: jobs }, worker));
+  for (const [id, damage] of Object.entries(DAMAGE).filter(([id]) => !only || only.includes(id))) {
+    const problems = await damagedResumeCheck(browser, base, id, damage);
+    if (problems.length) failed++;
+    console.log(`${problems.length ? 'FAIL' : 'ok  '} ${id.padEnd(9)} a real in-progress save with damage`);
+    for (const p of problems) console.log(`       ${p}`);
+  }
+  if (only && !only.includes('purl')) return failed;
   const fallback = await mountFailCheck(browser, base);
   console.log(`${fallback.length ? 'FAIL' : 'ok  '} purl      a game that throws while starting`);
   for (const p of fallback) console.log(`       ${p}`);
   return failed + (fallback.length ? 1 : 0);
+}
+
+// Damage done to a real in-progress save (played for a few seconds first), per puzzle game.
+const DAMAGE = {
+  beadloom: (ip) => (delete ip.sim.board.kind, delete ip.sim.supply.offset),
+  purl: (ip) => (delete ip.sim.board.kind, delete ip.sim.board.pair),
+  dotwork: (ip) => ((ip.hint = 99999), (ip.board.stars = 'x')),
+};
+
+// Play a puzzle level for a few seconds, damage its saved in-progress state, reopen it: the game must refuse the
+// damaged state (restart the level) with no errors, and keep a copy of what it dropped.
+async function damagedResumeCheck(browser, base, id, damage) {
+  const page = await browser.newPage(device('412x915'));
+  const errors = watchErrors(page);
+  const problems = [];
+  try {
+    await page.goto(`${base}?level=${id === 'dotwork' ? 40 : 3}&autoplay=1#/${id}`); // a Dotwork level that lasts
+    await sleep(id === 'dotwork' ? 1500 : 4000);
+    await page.eval(`location.hash = ''`); // leaving saves the level in progress
+    await sleep(300);
+    const record = await page.eval(`JSON.parse(localStorage.getItem('whittle:v1'))`);
+    const ip = record?.games?.[id]?.inProgress;
+    if (!ip) return [...errors, 'no level in progress was saved'];
+    damage(ip);
+    await page.eval(`localStorage.setItem('whittle:v1', ${JSON.stringify(JSON.stringify(record))})`);
+    await page.goto(`${base}?damaged=1#/${id}`);
+    await sleep(3000);
+    problems.push(...(await page.eval(CONTROLS_CHECK)));
+    if (!(await page.eval(MOUNTED))) problems.push('never mounted');
+  } catch (e) {
+    problems.push(`smoke: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+  return [...errors, ...problems];
 }
 
 // The shell's last line of defence: a game whose mount() throws gets the "could not start" card, and Start fresh
@@ -420,7 +462,7 @@ async function mountFailCheck(browser, base) {
       await page.tap(at.x, at.y);
       await sleep(800);
       const games = await page.eval(`JSON.parse(localStorage.getItem('whittle:v1')).games`);
-      if (games.purl !== undefined || games['purl.broken']?.level !== 7) problems.push(`save not set aside: ${JSON.stringify(games)}`);
+      if (games.purl !== undefined || games['purl.broken']?.[0]?.blob?.level !== 7) problems.push(`save not set aside: ${JSON.stringify(games)}`);
     }
     problems.push(...(await page.eval(CONTROLS_CHECK)));
   } catch (e) {
@@ -482,7 +524,8 @@ async function main() {
   const { server, url } = await serve();
   const browser = await launch();
   if (opts.saves) {
-    const failed = await savesCheck(browser, url, opts.out, opts.jobs).finally(() => (browser.close(), server.close()));
+    const only = opts.games.length === games.length + 1 ? null : opts.games;
+    const failed = await savesCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
     console.log(`${failed ? `${failed} save case(s) failed` : 'all save cases ok'} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     process.exit(failed ? 1 : 0);
   }

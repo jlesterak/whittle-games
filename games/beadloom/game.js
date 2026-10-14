@@ -42,7 +42,10 @@ export default {
   mount(root, ctx) {
     const { el, modal, toast } = ctx.ui;
     const S = ctx.settings;
-    const save = cleanSave(ctx.store.get(), freshSave());
+    const stored = ctx.store.get();
+    const repaired = [];
+    const save = cleanSave(stored, freshSave(), repaired);
+    if (repaired.length) ctx.store.keep(stored); // a copy of what was there before it is saved over
     save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
 

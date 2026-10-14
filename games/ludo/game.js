@@ -65,6 +65,11 @@ export default {
       setup: { players: cleanPlayers(stored.setup?.players, { min: 2, max: 4, fallback: DEFAULT_PLAYERS }) },
       game: isPlain(stored.game) ? stored.game : null,
     };
+    // anything that was there but had to be dropped: keep a copy of the original before it is saved over
+    const dropped =
+      (stored.setup !== undefined && JSON.stringify(stored.setup?.players) !== JSON.stringify(save.setup.players)) ||
+      (stored.game !== undefined && stored.game !== null && save.game === null);
+    if (dropped) ctx.store.keep(stored);
     const rng = makeRng((Date.now() ^ (Math.random() * 2 ** 32)) >>> 0);
     const params = new URLSearchParams(location.search);
     const autoplay = params.has('autoplay'); // humans are played by the Hard bot, fast (testing)
@@ -253,8 +258,8 @@ export default {
       beginTurn();
     }
 
-    // A saved game that can't be played (a bug, or a hand-edited import) is kept as brokenGame and the setup
-    // screen comes back, rather than a crash.
+    // A saved game that can't be played (a bug, or a hand-edited import) is kept under 'ludo.broken' and the
+    // setup screen comes back, rather than a crash.
     function resumeGame() {
       try {
         g = loadGame(save.game);
@@ -268,7 +273,7 @@ export default {
         beginTurn();
       } catch (e) {
         console.warn('ludo: could not resume', e);
-        save.brokenGame = save.game;
+        ctx.store.keep({ game: save.game });
         g = null;
         save.game = null;
         persist();

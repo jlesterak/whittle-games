@@ -141,13 +141,14 @@ export function serialize(b) {
 
 export function loadBoard(level, s) {
   const b = createBoard(level);
-  for (const id of s.gone) {
-    if (id < 0 || id >= level.arrows.length) throw new Error('save does not match the level');
-    lift(b, id);
+  const ids = (a) => Array.isArray(a) && a.every((id) => Number.isInteger(id) && id >= 0 && id < level.arrows.length);
+  if (!s || !ids(s.gone) || !ids(s.failed) || !Number.isInteger(s.stars) || s.stars < 0) {
+    throw new Error('save does not match the level');
   }
+  for (const id of s.gone) if (!b.gone[id]) lift(b, id);
   for (const id of s.failed) if (!b.gone[id]) b.failed[id] = 1;
   b.stars = s.stars;
-  b.mistakes = s.mistakes || 0;
+  b.mistakes = Number.isInteger(s.mistakes) ? s.mistakes : 0;
   if (b.stars <= 0 && b.status === 'playing') b.status = 'lost';
   return b;
 }
