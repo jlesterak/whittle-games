@@ -1,9 +1,8 @@
 // Seat picking and the pass-and-play hand-over card, shared by the seated games (Yacht, Ludo).
 // Plain responsive DOM in CSS px (styles in core/style.css .seat-*, .pass-*).
-import { SEAT_COLOURS, BOT_LEVELS } from './seats.js';
+import { SEAT_COLOURS, BOT_LEVELS, defaultName } from './seats.js';
 
-const BOT_NAMES = ['Rusty', 'Pip', 'Dot', 'Bolt'];
-export const defaultName = (kind, i) => (kind === 'bot' ? BOT_NAMES[i % 4] : `Player ${i + 1}`);
+export { defaultName };
 
 // Rows of seats: colour, name, Human / Bot, the bot's level, remove; plus add buttons.
 // players: [{ name, kind, level }]. onChange(players) fires on every edit. Returns { node, players() }.

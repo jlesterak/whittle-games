@@ -96,7 +96,43 @@ async function openGame(meta) {
     },
     openSettings: (extra) => openSettings({ meta, game, extra }),
   };
-  current = { meta, game, instance: game.mount(root, ctx) };
+  try {
+    current = { meta, game, instance: game.mount(root, ctx) };
+  } catch (e) {
+    console.error(e);
+    current = { meta, game, instance: null };
+    showLoadFail(root, meta);
+  }
+}
+
+// A game that throws while starting is most likely tripping over its save. Offer a way out that keeps the save:
+// export it, or start the game fresh with the old blob set aside as '<id>.broken' (it stays in exports).
+function showLoadFail(root, meta) {
+  root.replaceChildren(
+    el(
+      'div',
+      { class: 'load-fail' },
+      el('h2', {}, `${meta.title} could not start`),
+      el('p', {}, "This game's save could not be loaded. Export a copy to keep it, or start the game fresh."),
+      el(
+        'div',
+        { class: 'load-fail-actions' },
+        el('button', { class: 'btn', onclick: () => save.exportSave() }, 'Export save'),
+        el(
+          'button',
+          {
+            class: 'btn btn-primary',
+            onclick: () => {
+              save.quarantine(meta.id);
+              openGame(meta);
+            },
+          },
+          'Start fresh',
+        ),
+        el('button', { class: 'btn', onclick: () => (location.hash = '') }, 'Back to shelf'),
+      ),
+    ),
+  );
 }
 
 // The settings panel: global toggles, the open game's own settings, save export/import.

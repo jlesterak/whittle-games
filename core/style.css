@@ -63,6 +63,10 @@ button { font: inherit; cursor: pointer; }
   bottom: env(safe-area-inset-bottom, 0px); left: env(safe-area-inset-left, 0px);
 }
 .error { color: #fff; padding: 24px; }
+.load-fail { max-width: 420px; margin: 0 auto; padding: max(48px, env(safe-area-inset-top)) 20px 24px; color: #fff; text-align: center; }
+.load-fail h2 { font-weight: 900; font-size: 26px; margin: 0 0 10px; }
+.load-fail p { opacity: 0.85; line-height: 1.4; margin: 0 0 20px; }
+.load-fail-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 
 /* Modal */
 .modal-back {

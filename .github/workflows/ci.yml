@@ -31,6 +31,8 @@ jobs:
         run: node tools/smoke.mjs
       - name: Service worker (offline start, whole updates)
         run: node tools/smoke.mjs --sw
+      - name: Broken and odd saves never crash a game
+        run: node tools/smoke.mjs --saves
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4

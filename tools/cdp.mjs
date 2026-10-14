@@ -39,6 +39,8 @@ export function findChrome() {
   return found.find((p) => existsSync(p));
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 export async function launch({ chrome = findChrome(), args = [] } = {}) {
   if (!chrome) throw new Error('No Chrome or Chromium found: set CHROME=/path/to/chrome');
   const profile = mkdtempSync(join(tmpdir(), 'whittle-cdp-'));
@@ -52,6 +54,11 @@ export async function launch({ chrome = findChrome(), args = [] } = {}) {
       '--no-default-browser-check',
       '--hide-scrollbars',
       '--mute-audio',
+      // no sync, update or push-messaging traffic: offline-style runs, fewer stray connections
+      '--disable-background-networking',
+      '--disable-component-update',
+      '--disable-sync',
+      '--no-pings',
       // CI containers run as root without a sandbox namespace
       ...(process.getuid?.() === 0 || process.env.CI ? ['--no-sandbox'] : []),
       ...args,
@@ -80,11 +87,18 @@ export async function launch({ chrome = findChrome(), args = [] } = {}) {
     ...conn,
     newPage: (opts) => newPage(conn, opts),
     async close() {
+      const exited = new Promise((r) => (proc.exitCode != null ? r() : proc.once('exit', r)));
+      // ask Chrome to quit so its helper processes stop writing to the profile; kill it if it doesn't
+      await Promise.race([conn.send('Browser.close').catch(() => {}), sleep(3000)]);
       conn.ws.close();
-      proc.kill();
-      await new Promise((r) => (proc.exitCode != null ? r() : proc.once('exit', r)));
-      // Chrome may still be flushing its profile for a moment after exit
-      rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+      const timer = setTimeout(() => proc.kill('SIGKILL'), 3000);
+      await exited;
+      clearTimeout(timer);
+      try {
+        rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+      } catch (e) {
+        console.warn(`cdp: could not remove ${profile} (${e.code}); it is only a temp folder`);
+      }
     },
   };
 }
@@ -122,7 +136,6 @@ export async function connect(url) {
   return { ws, send, on };
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // A tab in a fresh browser context with a phone or desktop viewport.
 async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = false, touch = mobile } = {}) {

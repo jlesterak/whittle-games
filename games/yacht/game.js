@@ -7,7 +7,8 @@ import { CATS, LABELS, normRules, newCard, legalBoxes, boxScore, applyScore, tot
 import { botHold, botBox } from './bot.js';
 import { makeRng } from '../../core/rng.js';
 import { reroll, botDelay, BOT_SPEEDS } from '../../core/dice.js';
-import { createSeats, restoreSeats, needsPass, SEAT_COLOURS } from '../../core/seats.js';
+import { createSeats, restoreSeats, needsPass, cleanPlayers, SEAT_COLOURS } from '../../core/seats.js';
+import { isPlain } from '../../core/save.js';
 import { seatSetup, passScreen } from '../../core/seats-ui.js';
 import { makeDie, tumble } from '../../core/dice-view.js';
 import { fitStage } from '../../core/stage.js';
@@ -31,6 +32,11 @@ const SETTINGS = [
   { key: 'botSpeed', label: 'Bot speed', options: BOT_SPEEDS, default: 'normal' },
 ];
 
+const DEFAULT_PLAYERS = [
+  { name: 'Player 1', kind: 'human', level: 'medium' },
+  { name: 'Rusty', kind: 'bot', level: 'medium' },
+];
+
 const BG = '#17402b';
 const ICONS = { back: icons.back(), gear: icons.gear(BG), bot: icons.bot(BG), crown: icons.crown() };
 
@@ -45,11 +51,13 @@ export default {
     const S = ctx.settings;
     const sounds = makeSounds(ctx.audio, ctx.haptics);
     const stored = ctx.store.get() || {};
+    const high = isPlain(stored.high) ? stored.high : {};
+    const scores = (list) => (Array.isArray(list) ? list.filter((e) => isPlain(e) && Number.isFinite(e.score) && typeof e.date === 'string') : []);
     const save = {
-      setup: { players: [{ name: 'Player 1', kind: 'human', level: 'medium' }, { name: 'Rusty', kind: 'bot', level: 'medium' }] },
-      game: null,
       ...stored,
-      high: { classic: [], triple: [], ...(stored.high || {}) },
+      setup: { players: cleanPlayers(stored.setup?.players, { min: 1, max: 4, fallback: DEFAULT_PLAYERS }) },
+      game: isPlain(stored.game) ? stored.game : null,
+      high: { ...high, classic: scores(high.classic), triple: scores(high.triple) },
     };
     const rng = makeRng((Date.now() ^ (Math.random() * 2 ** 32)) >>> 0);
     const params = new URLSearchParams(location.search);
@@ -208,21 +216,28 @@ export default {
       beginTurn();
     }
 
+    // A saved game that can't be played (a bug, or a hand-edited import) is kept as brokenGame and the setup
+    // screen comes back, rather than a crash.
     function resumeGame() {
       try {
         g = save.game;
         g.rules = normRules(g.rules);
         seats = restoreSeats(g.seats);
-        if (g.cards.length !== seats.players.length) throw new Error('bad save');
+        const ps = seats.players;
+        const ok = ps.length >= 1 && ps.length <= 4 && cleanPlayers(ps, { min: 1, fallback: [] }).length === ps.length;
+        if (!ok || !Array.isArray(g.cards) || g.cards.length !== ps.length || !Array.isArray(g.dice)) throw new Error('bad save');
+        showView('play');
+        if (g.over) return showOver(false);
+        beginTurn();
       } catch (e) {
         console.warn('yacht: could not resume', e);
+        save.brokenGame = save.game;
         g = null;
         save.game = null;
-        return showView('setup');
+        persist();
+        toast('Could not resume the last game');
+        showView('setup');
       }
-      showView('play');
-      if (g.over) return showOver(false);
-      beginTurn();
     }
 
     function beginTurn() {

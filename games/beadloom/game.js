@@ -5,6 +5,7 @@ import { createSim, generateLevel, difficulty, CRATE_ROWS } from './rules.js';
 import { DT } from '../../engines/slotsort/sim.js';
 import { Renderer, FIT } from './render.js';
 import { fitStage, canvasDpr } from '../../core/stage.js';
+import { cleanSave } from '../../core/save.js';
 import { makeSounds } from './sounds.js';
 import { THEMES, COLORS } from './colors.js';
 
@@ -41,8 +42,8 @@ export default {
   mount(root, ctx) {
     const { el, modal, toast } = ctx.ui;
     const S = ctx.settings;
-    const save = { ...freshSave(), ...(ctx.store.get() || {}) };
-    save.boosters = { ...START_BOOSTERS, ...save.boosters };
+    const save = cleanSave(ctx.store.get(), freshSave());
+    save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
 
     // ---- DOM ----

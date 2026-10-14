@@ -32,7 +32,7 @@ const SHAPES = {
 };
 const SHAPE_ORDER = ['circle', 'diamond', 'heart', 'plus', 'ring', 'hourglass'];
 
-// Difficulty knobs per level number (ref 8.4). t: 0 at level 1, 1 at level 80.
+// Difficulty knobs per level number (ref 8.4). t: 0 at level 1, 1 from level 81.
 export function knobs(n) {
   const t = Math.min(1, (n - 1) / 80);
   const hard = isHard(n);

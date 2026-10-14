@@ -6,6 +6,7 @@
 //   node tools/smoke.mjs --game dotwork --viewport 360x740
 //   node tools/smoke.mjs --game beadloom --params "level=40" --wait 8
 //   node tools/smoke.mjs --sw                     offline start and a whole update, on a temporary copy
+//   node tools/smoke.mjs --saves                  every game over broken and odd saves
 //
 // Flags: --game id[,id] (shelf counts as a game), --viewport WxH[,WxH], --params "a=1&b=2" (added to the
 // URL; autoplay=1 unless --no-autoplay), --wait seconds after load (default 5), --out dir, --jobs n,
@@ -294,6 +295,118 @@ async function swCheck(browser, out) {
   return [...errors, ...problems];
 }
 
+// --saves: blobs a game's save could hold after a bug, an old version or a hand-edited import. Each must open
+// to a playable screen with no errors. The whole-record cases break the shared save record itself.
+export const BAD_SAVES = {
+  'a string': 'garbage',
+  'a number': 42,
+  'an array': [],
+  'an empty object': {},
+  'wrong types': { level: 'x', coins: 'y', boosters: null, cleared: 'z', best: 7, inProgress: 'zzz', setup: 'x', game: 5, high: 'x' },
+  'odd values': { level: -5, coins: -1, boosters: { slot: 'a', hint: -2 }, inProgress: { level: 1 }, setup: { players: [] }, game: { v: 1 }, high: { classic: 'x' } },
+  'a stale level': { level: 3, coins: 10, inProgress: { level: 3, gen: 0, sim: {}, board: {} } },
+  'a broken resume': { level: 1, coins: 10, inProgress: { level: 1, gen: 99, sim: { tick: 'x' }, board: { gone: 'x' } } },
+  'broken seats': { setup: { players: [{ name: 5, kind: 'alien', level: 'x' }, null] }, game: null },
+  'a broken game': { setup: { players: [{ name: 'A', kind: 'human', level: 'medium' }] }, game: { v: 1, rules: null, seats: 3, cards: 'x', tokens: 'x', phase: 'play' } },
+};
+export const BAD_RECORDS = {
+  'not JSON': '{oops',
+  'settings and games as arrays': JSON.stringify({ v: 1, settings: [], games: [] }),
+  'games as null': JSON.stringify({ v: 1, settings: { sound: 'loud' }, games: null }),
+};
+const KEY = 'whittle:v1';
+
+async function savesCheck(browser, base, out, jobs) {
+  const ids = games.map((g) => g.id);
+  const queue = [
+    ...ids.flatMap((id) => Object.entries(BAD_SAVES).map(([name, blob]) => ({ id, name, raw: JSON.stringify({ v: 1, settings: {}, games: { [id]: blob } }) }))),
+    ...['shelf', ...ids].flatMap((id) => Object.entries(BAD_RECORDS).map(([name, raw]) => ({ id, name: `record ${name}`, raw }))),
+  ];
+  let failed = 0;
+  const worker = async () => {
+    for (let job; (job = queue.shift()); ) {
+      const page = await browser.newPage(device('412x915'));
+      const errors = watchErrors(page);
+      const problems = [];
+      try {
+        await page.goto(base); // same origin first, so the record can be planted before the app reads it
+        await page.eval(`localStorage.setItem(${JSON.stringify(KEY)}, ${JSON.stringify(job.raw)})`);
+        await page.goto(`${base}?autoplay=1&saves=${encodeURIComponent(job.name)}${job.id === 'shelf' ? '' : `#/${job.id}`}`);
+        let ok = false;
+        for (let t = 0; t < 6000 && !ok; t += 300) {
+          ok = await page.eval(MOUNTED);
+          if (!ok) await sleep(300);
+        }
+        if (!ok) problems.push('never mounted');
+        for (const step of job.id === 'shelf' ? [] : STEPS[job.id] || []) {
+          const at = await findButton(page, step.tap);
+          if (!at) problems.push(`no "${step.tap}" button`);
+          else await page.tap(at.x, at.y);
+          await sleep(300);
+        }
+        await sleep(2500);
+        problems.push(...(await page.eval(CONTROLS_CHECK)));
+      } catch (e) {
+        problems.push(`smoke: ${e.message}`);
+      } finally {
+        await page.close();
+      }
+      const all = [...errors, ...problems];
+      if (all.length) failed++;
+      console.log(`${all.length ? 'FAIL' : 'ok  '} ${job.id.padEnd(9)} ${job.name}`);
+      for (const p of all) console.log(`       ${p}`);
+    }
+  };
+  await Promise.all(Array.from({ length: jobs }, worker));
+  const fallback = await mountFailCheck(browser, base);
+  console.log(`${fallback.length ? 'FAIL' : 'ok  '} purl      a game that throws while starting`);
+  for (const p of fallback) console.log(`       ${p}`);
+  return failed + (fallback.length ? 1 : 0);
+}
+
+// The shell's last line of defence: a game whose mount() throws gets the "could not start" card, and Start fresh
+// sets its save aside as '<id>.broken'. The browser is handed a stand-in Purl module that always throws.
+async function mountFailCheck(browser, base) {
+  const page = await browser.newPage(device('412x915'));
+  const errors = watchErrors(page);
+  const problems = [];
+  try {
+    await page.send('Fetch.enable', { patterns: [{ urlPattern: '*/games/purl/game.js' }] });
+    page.on('Fetch.requestPaused', ({ requestId }) =>
+      page.send('Fetch.fulfillRequest', {
+        requestId,
+        responseCode: 200,
+        responseHeaders: [{ name: 'content-type', value: 'text/javascript' }],
+        body: Buffer.from("export default { mount() { throw new Error('mount-fail check'); } };").toString('base64'),
+      }),
+    );
+    await page.goto(base);
+    await page.eval(`localStorage.setItem('whittle:v1', JSON.stringify({ v: 1, settings: {}, games: { purl: { level: 7 } } }))`);
+    await page.goto(`${base}?mountfail=1#/purl`);
+    let shown = false;
+    for (let t = 0; t < 5000 && !shown; t += 250) {
+      shown = await page.eval(`!!document.querySelector('.load-fail')`);
+      if (!shown) await sleep(250);
+    }
+    if (!shown) problems.push('no "could not start" card');
+    const at = await findButton(page, 'Start fresh');
+    if (!at) problems.push('no Start fresh button');
+    else {
+      await page.tap(at.x, at.y);
+      await sleep(800);
+      const games = await page.eval(`JSON.parse(localStorage.getItem('whittle:v1')).games`);
+      if (games.purl !== undefined || games['purl.broken']?.level !== 7) problems.push(`save not set aside: ${JSON.stringify(games)}`);
+    }
+    problems.push(...(await page.eval(CONTROLS_CHECK)));
+  } catch (e) {
+    problems.push(`smoke: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+  // the stand-in's own error is expected; anything else is not
+  return [...errors.filter((e) => !e.includes('mount-fail check')), ...problems];
+}
+
 function num(flag, v, min) {
   const n = Number(v);
   if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
@@ -301,7 +414,7 @@ function num(flag, v, min) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false };
+  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -314,6 +427,7 @@ function parseArgs(argv) {
     else if (a === '--jobs') opts.jobs = num(a, next(), 1);
     else if (a === '--hires') opts.hires = true;
     else if (a === '--sw') opts.sw = true;
+    else if (a === '--saves') opts.saves = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
   const known = ['shelf', ...games.map((g) => g.id)];
@@ -342,6 +456,11 @@ async function main() {
   }
   const { server, url } = await serve();
   const browser = await launch();
+  if (opts.saves) {
+    const failed = await savesCheck(browser, url, opts.out, opts.jobs).finally(() => (browser.close(), server.close()));
+    console.log(`${failed ? `${failed} save case(s) failed` : 'all save cases ok'} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    process.exit(failed ? 1 : 0);
+  }
   const queue = opts.viewports.flatMap((vp) => opts.games.map((id) => ({ ...opts, id, vp })));
   let failed = 0;
   const worker = async () => {

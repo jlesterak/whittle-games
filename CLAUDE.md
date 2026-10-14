@@ -45,7 +45,8 @@ Work through the plan; don't wait for chat replies.
 - **Pure, seeded game logic.** Rules, bots, solvers and generators are DOM-free and take a seed (`core/rng.js`), so
   they can be unit-tested, solved and replayed. Rendering and input stay in `game.js` / `render.js`.
 - **Never break a save.** Players keep progress in localStorage. A change to a save's shape needs a migration or a
-  graceful restart of the in-progress level (see Beadloom `LEVEL_GEN`), never a crash or a wiped save.
+  graceful restart of the in-progress level (see Beadloom `LEVEL_GEN`), never a crash or a wiped save. Read saves
+  through `cleanSave()` / `cleanPlayers()` and add a new game to `node tools/smoke.mjs --saves`.
 - **Phone first.** Check layouts at 360x740, 384x693 and 412x915 portrait, plus 915x412 landscape and 1440x900
   desktop. Touch targets at least 44 CSS px. Honour the Reduced motion and Colourblind symbols settings.
 - **Tests must earn their place:** rules, bots, solvers, generators, saves and past bugs, not coverage numbers.

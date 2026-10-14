@@ -7,6 +7,7 @@ import { createBoard, loadBoard, fire, erase, addStar, freeArrows, serialize, ST
 import { generateLevel } from './generator.js';
 import { Renderer } from './render.js';
 import { fitStage } from '../../core/stage.js';
+import { cleanSave } from '../../core/save.js';
 import { makeSounds } from './sounds.js';
 
 const DW = 1080;
@@ -54,8 +55,8 @@ export default {
   mount(root, ctx) {
     const { el, modal, toast } = ctx.ui;
     const S = ctx.settings;
-    const save = { ...freshSave(), ...(ctx.store.get() || {}) };
-    save.boosters = { ...START_BOOSTERS, ...save.boosters };
+    const save = cleanSave(ctx.store.get(), freshSave());
+    save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
 
     // ---- DOM ----
