@@ -6,11 +6,11 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
+- P3 Save safety
 - P2 Whole updates, never mixed versions (done; waiting for the reviewer)
 - R4 Public game docs (written; waiting for the reviewer)
 
 ## [PENDING]
-- P3 Save safety
 - P4 Beadloom 6-column boards: check the old TODO item
 - P5 Beadloom track as one filled outline (feeder-ring junction notch)
 - P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
