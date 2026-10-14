@@ -1,15 +1,42 @@
 # Whittle TODO
 
+Item IDs refer to PLAN.md. Agents: update this file in the same commit as the work (see CLAUDE.md).
+
+## Inbox
+Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
+
 ## [IN PROGRESS]
+- R1 Agent docs and plan
 
 ## [PENDING]
-- Beadloom: 6-column boards (recording C) need a per-level column layout in render.js; boards stay 5 wide for now
-- Beadloom: record a fill-booster use and a lift on a locked crate (still unrecorded, spec Unknowns 3, 4)
-- Beadloom still clips in spots on the phone (Jake, 2026-10-09: "still a little cut off in spots"); get screenshots of where,
-  then fix in core/stage.js or the Beadloom layout (the 10-08 clipping fix covered Purl's frame and the arms).
-- Jake: play-test feel on the phone (sound mix, haptics strength, super-slow speed, difficulty curve) after the clipping fix
+- R2 CI
+- R3 Headless smoke check
+- R4 Public game docs
+- P1 Public-ready pass
+- P2 Whole updates, never mixed versions
+- P3 Save safety
+- P4 Beadloom 6-column boards: check the old TODO item
+- P5 Beadloom track as one filled outline (feeder-ring junction notch)
+- P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
+- P6h [HUMAN] Check clipping on the phone
+- P7 Frame-rate budget
+- P8 Accessibility and input basics
+- P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
+- P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
+- E1 Progress on the shelf
+- E2 Daily puzzle
+- E3 Farkle
+- E4 Backgammon
+- E5 Cards core and Klondike
+- X1 Hosting files
+- X1h [HUMAN] Publish
+- D1 [HUMAN] License
+- D2 [HUMAN] Reconstructed level data
+- D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+
+## History (before PLAN.md, newest first)
 - Beadloom track layout (Jake, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
   never shrink below a round hole (dropped the scaled-down and pinched hourglass shapes), feeder arms sit at the
   screen sides and merge at an angle instead of running alongside the ring, waiting rows stop at the ring's edge and
@@ -150,12 +177,3 @@
 - Core skeleton (milestone 1): shelf, game-module interface, settings, save + export/import,
   WebAudio + haptics helpers, rng/dice/seats helpers, PWA manifest + icons, service worker
   with a generated precache list, Dice Tray placeholder game
-
-## [PENDING] Beadloom feeder-ring junction notch
-The feeder tube and ring are drawn as separate stroked centrelines, so where the straight tube
-wall meets the curved ring wall there's a small V-notch. The curve-following extension
-(render.js setLevel `feederExt`, used in the static `stroke()`) hides the channel seam but not
-this outer-wall corner. Clean fix: render the whole track (ring + both feeders) as ONE unioned
-FILLED outline instead of overlapping strokes — offset each centreline by ±(CHANNEL/2+WALL) for
-the wall band and ±CHANNEL/2 for the dark channel (resample() already carries unit normals), then
-fill each as a single Path2D (nonzero winding unions overlaps seamlessly). Draw beads on top.
