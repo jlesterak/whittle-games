@@ -94,7 +94,11 @@ restarts the level.
 
 ## Known gaps
 
-- PLAN items P5 (track outline notch) and P6 (clipping on some phones). 6-column boards were checked in P4 (levels
-  48, 60, 99 at 360x740 and 412x915: crates inside the board, autoplay wins); `tests/beadloom-layout.test.js`
-  guards the layout constants.
+- PLAN P6 (clipping on some phones) and P8 (the crate tap box is a little narrower than the crate).
+- 6-column boards were checked in P4 (levels 48, 51, 59, 60, 99 at 360x740 and 412x915: crates inside the board,
+  side dispensers right, autoplay wins); `tests/beadloom-layout.test.js` guards the layout constants, rails
+  included.
+- Where a feeder joins the ring the walls meet in a rounded, concentric fillet (`junctionCorners`, `filletCentre`,
+  `filletShape` in `track.js`, tested in `tests/beadloom-track.test.js`). The dark channel keeps its V; beads
+  mostly cover it.
 - Not yet recorded from play: a fill-booster use and a lift on a locked crate (PLAN P10).

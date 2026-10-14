@@ -6,11 +6,10 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P4 Beadloom 6-column boards (checked; waiting for the reviewer)
+- P5 Beadloom track junction (done; waiting for the reviewer)
 - P3 Save safety (done; waiting for the reviewer)
 
 ## [PENDING]
-- P5 Beadloom track as one filled outline (feeder-ring junction notch)
 - P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
 - P6h [HUMAN] Check clipping on the phone
 - P7 Frame-rate budget
@@ -29,6 +28,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: P4 6-column Beadloom boards: already worked (old TODO item stale); checked headless, layout test added
 - 2026-10-14: P2 whole updates: VERSION is a content hash, a new worker waits for the shelf's Update ready /
   Reload, other tabs move over when they leave their game; smoke --sw covers offline, mid-game and two tabs
 - 2026-10-14: R4 public game docs: docs/games/{beadloom,purl,dotwork,yacht,ludo}.md from the code, numbers checked

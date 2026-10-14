@@ -184,7 +184,9 @@ tools/precache.mjs         (exists) service-worker file list
 ### P8. Accessibility and input basics
 - **Do:** every icon-only button has an `aria-label` (smoke check); modals take focus, Escape closes non-sticky
   ones; desktop keyboard: Tab reaches every control, Enter / Space activate them; the Android back gesture
-  (history back) from a game returns to the shelf with the game saved, and reopening resumes it.
+  (history back) from a game returns to the shelf with the game saved, and reopening resumes it. Canvas tap
+  targets cover what is drawn: Beadloom's crate hit box is ±68 design px against a ±74 crate (about 41 CSS px wide
+  at 360 px, under 44); 6-column boards have room for ±81 (found in the P4 review).
 - **Acceptance:** smoke a11y check passes for all games; back-and-reopen resumes the same state in every game
   (smoke compares the debug state before and after).
 - **Verify:** `node tools/smoke.mjs --a11y`

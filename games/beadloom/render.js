@@ -5,7 +5,7 @@
 
 import { fitStage } from '../../core/stage.js';
 import { COLORS, THEMES } from './colors.js';
-import { buildTrack, samplePath, W, H, LANE, LANES, BEAD, CHANNEL, WALL } from './track.js';
+import { buildTrack, samplePath, filletShape, W, H, LANE, LANES, BEAD, CHANNEL, WALL } from './track.js';
 import { SpriteSet, drawSprite, drawSwapArrows, drawLock, drawKey, drawDispenser, drawIce, outlinedText, rr, drawCrate, LOCK_COLORS, CRATE_W, CRATE_H } from './sprites.js';
 import { CRATE, DISP, WALL as NOCELL } from '../../engines/slotsort/board.js';
 import { CRATE_ROWS } from './rules.js';
@@ -34,7 +34,11 @@ function dispSide(b, disp) {
   if (((z / b.cols) | 0) !== ((disp.cell / b.cols) | 0)) return 0;
   return z < disp.cell ? -1 : 1;
 }
-const SLOT_H = 128;
+export const SLOT_H = 128;
+// A board cell's rail box around its centre, and the widest rail's padding (drawRails)
+export const CELL_BOX = { left: 70, right: 70, up: 76, down: 84 };
+export const RAIL_PAD = 26;
+const FILLET = 30; // radius (design px) of the outermost wall's rounded join where a feeder meets the ring
 const PCT = Array.from({ length: CRATE_ROWS + 1 }, (_, i) => `${i * 5}%`);
 const DASH = [18, 12];
 const NODASH = [];
@@ -216,23 +220,51 @@ export class Renderer {
       [this.track.feeders[0], false],
       [this.track.feeders[1], false],
     ];
-    const stroke = (lw, style, dy = 0) => {
-      g.lineWidth = lw;
-      g.strokeStyle = style;
-      g.lineJoin = 'round';
-      g.lineCap = 'round'; // the feeder arms end in a rounded cap; their mouth ends sit inside the ring channel
+    const OUTER = (CHANNEL + 2 * WALL + 10) / 2; // the shadow's half-width: the widest layer
+    const stroke = (ctx, lw, style, dy = 0, round = false) => {
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = style;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round'; // the feeder arms end in a rounded cap; their mouth ends sit inside the ring channel
       for (const [p, closed] of paths) {
-        g.beginPath();
-        for (let i = 0; i < p.count; i++) g[i ? 'lineTo' : 'moveTo'](p.xs[i], p.ys[i] + dy);
-        if (closed) g.closePath();
-        g.stroke();
+        ctx.beginPath();
+        for (let i = 0; i < p.count; i++) ctx[i ? 'lineTo' : 'moveTo'](p.xs[i], p.ys[i] + dy);
+        if (closed) ctx.closePath();
+        ctx.stroke();
+      }
+      if (!round) return;
+      // the wall layers round off the sharp V where each feeder band leaves the ring band (concentric arcs)
+      ctx.fillStyle = style;
+      for (let i = 0; i < 4; i++) {
+        const f = filletShape(this.track, i, lw / 2, OUTER, FILLET);
+        if (!f) continue;
+        ctx.beginPath();
+        ctx.moveTo(f.X[0], f.X[1] + dy);
+        ctx.lineTo(f.A0[0], f.A0[1] + dy);
+        ctx.lineTo(f.A[0], f.A[1] + dy);
+        ctx.arc(f.C[0], f.C[1] + dy, f.r, f.a0, f.a1, f.ccw);
+        ctx.lineTo(f.B0[0], f.B0[1] + dy);
+        ctx.closePath();
+        ctx.fill();
       }
     };
-    stroke(CHANNEL + 2 * WALL + 10, 'rgba(30,30,90,0.25)', 8);
-    stroke(CHANNEL + 2 * WALL + 4, '#5d669f');
-    stroke(CHANNEL + 2 * WALL - 2, '#7e88c6');
-    stroke(CHANNEL + 6, '#5a5f8c');
-    stroke(CHANNEL, '#4e4e6c');
+    // The drop shadow is translucent, so it is drawn opaque on its own layer and laid down once at 25 %: overlaps
+    // (ring under feeder, fillet over stroke) then can't darken twice.
+    const sh = (this.shadowLayer ??= document.createElement('canvas'));
+    sh.width = L.width;
+    sh.height = L.height;
+    const sg = sh.getContext('2d');
+    sg.setTransform(this.k, 0, 0, this.k, this.offX * this.dpr, this.offY * this.dpr);
+    stroke(sg, CHANNEL + 2 * WALL + 10, 'rgb(30,30,90)', 8, true);
+    g.save();
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.globalAlpha = 0.25;
+    g.drawImage(sh, 0, 0);
+    g.restore();
+    stroke(g, CHANNEL + 2 * WALL + 4, '#5d669f', 0, true);
+    stroke(g, CHANNEL + 2 * WALL - 2, '#7e88c6', 0, true);
+    stroke(g, CHANNEL + 6, '#5a5f8c');
+    stroke(g, CHANNEL, '#4e4e6c');
     // faint chevrons pointing along the flow
     g.strokeStyle = 'rgba(0,0,0,0.13)';
     g.lineWidth = 5;
@@ -297,25 +329,26 @@ export class Renderer {
     const b = this.sim.board;
     const cells = [];
     for (let i = 0; i < b.n; i++) if (b.kind[i] !== NOCELL) cells.push(this.cellXY(i));
+    const B = CELL_BOX;
     const fill = (pad, style) => {
       g.fillStyle = style;
       for (const [x, y] of cells) {
-        rr(g, x - 70 - pad, y - 76 - pad, 140 + pad * 2, 160 + pad * 2, 22 + pad);
+        rr(g, x - B.left - pad, y - B.up - pad, B.left + B.right + pad * 2, B.up + B.down + pad * 2, 22 + pad);
         g.fill();
       }
     };
-    const top = Math.min(...cells.map((c) => c[1])) - 76;
+    const top = Math.min(...cells.map((c) => c[1])) - B.up;
     const xs = cells.map((c) => c[0]);
-    const left = Math.min(...xs) - 70;
-    const right = Math.max(...xs) + 70;
+    const left = Math.min(...xs) - B.left;
+    const right = Math.max(...xs) + B.right;
     g.fillStyle = this.theme.rail;
     g.fillRect(-2000, top - 40, left + 2000, 26);
     g.fillRect(right, top - 40, W + 2000 - right, 26);
     g.fillStyle = this.theme.rail2;
     g.fillRect(-2000, top - 34, left + 2000, 12);
     g.fillRect(right, top - 34, W + 2000 - right, 12);
-    fill(26, this.theme.rail);
-    fill(18, this.theme.rail2);
+    fill(RAIL_PAD, this.theme.rail);
+    fill(RAIL_PAD - 8, this.theme.rail2);
     fill(10, this.theme.bg);
   }
 
