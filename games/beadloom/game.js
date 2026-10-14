@@ -12,9 +12,9 @@ const REWARD = 25;
 const PRICE = 100; // coins per booster
 const START_BOOSTERS = { slot: 3, lift: 3, fill: 3 };
 const FREE_BOOSTER_EVERY = 3; // levels
-const SPEED_CYCLE = ['slow', 'normal', 'fast'];
-const SPEED_LABEL = { slow: 'Slow', normal: 'x1', fast: 'x4' };
-const SPEED_CHIP = { slow: 'Slow Mode', normal: 'Speed Mode', fast: 'Fast Mode' };
+const SPEED_CYCLE = ['slow', 'normal', 'double', 'fast'];
+const SPEED_LABEL = { slow: 'Slow', normal: 'x1', double: 'x2', fast: 'x4' };
+const SPEED_CHIP = { slow: 'Slow Mode', normal: 'Speed Mode', double: 'Quick Mode', fast: 'Fast Mode' };
 const BOOSTER_SLOTS = 5; // the +1 booster stops here; Add space after Out of space may go one further
 const IDLE_HINT = 9; // seconds without a tap before the booster arrows show
 const LEVEL_GEN = 2; // bump when the generator changes: an in-progress save of an older level restarts
@@ -35,7 +35,7 @@ function freshSave() {
 
 export default {
   settings: [
-    { key: 'speed', label: 'Speed', options: [['slow', 'Super slow'], ['normal', 'Normal'], ['fast', 'Fast']], default: 'normal' },
+    { key: 'speed', label: 'Speed', options: [['slow', 'Super slow'], ['normal', 'Normal'], ['double', 'Double (x2)'], ['fast', 'Fast (x4)']], default: 'normal' },
   ],
 
   mount(root, ctx) {
@@ -578,6 +578,8 @@ const CSS = `
 .bo-speed[data-speed=slow] .bo-pill i { left: 7px; }
 .bo-speed[data-speed=normal] .bo-pill { padding-left: 22px; }
 .bo-speed[data-speed=normal] .bo-pill i { left: 86px; }
+.bo-speed[data-speed=double] .bo-pill { background: #f2c21b; padding-left: 22px; -webkit-text-stroke: 7px #7a5a00; }
+.bo-speed[data-speed=double] .bo-pill i { left: 86px; }
 .bo-speed[data-speed=fast] .bo-pill { background: #f39a1d; padding-left: 22px; -webkit-text-stroke: 7px #7a3d00; }
 .bo-speed[data-speed=fast] .bo-pill i { left: 86px; }
 .bo-turbo { position: absolute; left: 20px; top: 960px; width: 180px; text-align: center; font-size: 96px; line-height: 80px;

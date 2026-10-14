@@ -14,6 +14,7 @@ export const SEG_ROWS = 10; // a segment is 10 rows x 5 lanes = 50 beads
 export const SPEEDS = {
   slow: { rows: 6, timers: 1 }, // super slow, ~0.36x normal
   normal: { rows: 16.5, timers: 1 }, // the speed in the recordings ("x2" in the original)
+  double: { rows: 33, timers: 0.75 }, // 2x the recordings
   fast: { rows: 66, timers: 0.5 }, // 4x the recordings
 };
 export const BEAD_FLIGHT = 0.28;
