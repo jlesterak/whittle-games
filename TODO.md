@@ -7,7 +7,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 
 ## [IN PROGRESS]
 - P2 Whole updates, never mixed versions
-- P1 Public-ready pass (done; waiting for the reviewer)
 - R4 Public game docs (written; waiting for the reviewer)
 
 ## [PENDING]
@@ -32,6 +31,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: P1 public-ready pass: no personal names in tracked files, no secrets or private hosts, D2 lists the
+  boards rebuilt from recordings and what else was measured from them
 - 2026-10-14: R3 headless smoke check: tools/cdp.mjs + tools/smoke.mjs (no npm packages), 18 pages in ~35 s, in CI
   with screenshots kept; vibrate waits for the first tap; Dotwork hides its parked bars while erasing
 - 2026-10-14: R2 CI: node --test (now also imports every app module) and the precache check on PRs and master

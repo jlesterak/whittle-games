@@ -32,8 +32,11 @@ be, and the repo is public. The files (P1, 2026-10-14):
 
 Not level data, but also taken from recordings: the colour values in `games/beadloom/colors.js` and
 `games/purl/colors.js` (their comments say sampled), probably Dotwork's palette in `games/dotwork/colors.js`
-(unverified), and timings such as belt and thread speeds. These are measurements, not copied assets. The art itself is drawn in code, and the names and level generators are ours.
-The private specs and reference stills were never committed (checked with `git log --all` on 2026-10-14).
+(unverified), and timings such as belt and thread speeds. These are measurements, not copied assets. The art is
+drawn in code and the names are ours. The level generators are our own code, but some of their targets were tuned
+to match recorded levels: board outlines (`engines/slotsort/generator.js`, `games/purl/rules.js`), the tall O ring
+(`games/beadloom/track.js`), Dotwork's difficulty numbers and a colour pair (`games/dotwork/generator.js`) and
+Beadloom's special-tile mix (`games/beadloom/rules.js`). The private specs and reference stills were never committed (checked with `git log --all` on 2026-10-14).
 
 Recommendation: keep them as test fixtures only if the owner is comfortable; otherwise replace each with a
 generated board of the same size and difficulty (the tests only need its shape and stats), and replace Dotwork's
