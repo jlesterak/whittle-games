@@ -48,7 +48,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - The owner play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
 - Ludo powerups board (owner, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
   effects (jump +3 / +6, swap, shield, roll again, back to start, back, freeze), used squares respawn, icon layer,
-  legend (?), banners and sounds, Medium/Hard value the squares. Spec 2.1; unit-tested; checked headless at
+  legend (?), banners and sounds, Medium/Hard value the squares. Ludo doc 2.1; unit-tested; checked headless at
   360x740 and 1440x900. Owner: play-test it (effect mix, whether freeze/back to start feel too harsh)
 - Ludo plays on after the first winner (owner, 2026-10-09): finished players take places and are skipped; ends at one
   left, or ranks a bots-only remainder by progress. Unit-tested (63 tests); a full 2-human game not yet checked live
@@ -74,7 +74,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - Ludo rules engine (milestone 1): `games/ludo/rules.js` (relative token positions, 52-square track, opposite
   seating for 2, legal moves with captures of whole stacks, safe start/star squares, blockades, exact or overshoot
   finish, extra rolls on 6 / capture / home, three 6s forfeit, win, standings); tests for each rule and toggle
-- Ludo spec: classic rules (6 to leave, safe start + star squares, exact finish, extra roll on 6, three 6s
+- Ludo design doc: classic rules (6 to leave, safe start + star squares, exact finish, extra roll on 6, three 6s
   forfeit), house toggles, 2-4 seats with opposite seating for 2, easy/medium/hard bots, screens, milestones
 - Yacht polish (milestone 4): layouts checked headless at 384x693, 360x740, 412x915, 768x1024, 1440x900
   and 915x412 (setup, 4-seat game, Triple, pass card, game over, high scores): column widths, 2x2 standings,
@@ -90,7 +90,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   values (217), Easy = rule of thumb (182); tests for legality under every rule mix and Joker spot
 - Yacht rules engine (milestone 1): `games/yacht/rules.js` (13 boxes, upper bonus 35 at 63, Yacht bonus
   +100, forced and free Joker, Triple card with per-column Joker, totals); tests for every box and Joker case
-- Yacht spec: classic Hasbro rules with forced Joker, house toggles (free Joker, no bonus, Triple card),
+- Yacht design notes: classic rules with forced Joker, house toggles (free Joker, no bonus, Triple card),
   1-4 seats of humans and easy/medium/hard bots, pass screen, solo top 10, screens and milestones
 - Dotwork polish (milestone 4): cached still layer (arrows at rest, settled dots, rays) redrawn only on
   change or camera move, arrows batched per colour: level 208 at 4x CPU throttle went from ~14 to ~45 fps

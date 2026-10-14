@@ -64,7 +64,8 @@ Generated on the device, the same on every phone (`rules.js` knobs, `engines/slo
    knobs down.
 
 Samples: level 1 has 6 crates and an 80-row ring; level 40 has 21 crates, 8 swap crates, 2 locks and a 130-row ring.
-Ring shapes: a round O on levels 1-4, then O, wide and squared O in turn.
+Ring shapes: a round O on levels 1-4, then a repeating cycle of six (squared O, wide, O, squared O, O, wide from
+level 5; `shapeFor` in `track.js`).
 
 ## Settings and display
 

@@ -39,7 +39,7 @@ How sure each item is: **[R]** = classic rule, **[H]** = house rule or a variant
 - **No legal move:** the turn passes (still rolling again on a 6).
 - **End [D]:** the first player with all four tokens home wins and takes 1st place; play goes on for the other
   places, skipping finished players, until one player is left. If only bots are left, they are ranked by
-  progress (tokens home, then total steps travelled) instead of being played out.
+  progress (total steps travelled, a token home counting 57) instead of being played out.
 
 ## 2. House rules (Settings → Ludo) [H]
 
@@ -122,9 +122,10 @@ capture or home bonus after a 5 starts the count again.
   that seat's colour waits for a tap. Extra rolls stay with the same player, so no card. Bot turns play
   in the open. Ludo has no hidden information, so the card is only a hand-over cue.
 - **Bot pace [D]:** `PACE` in `games/ludo/game.js` lists the delays in ms at **Slow**; Normal (the default) is
-  ×0.45 and Fast ×0.2 (`core/dice.js` `botDelay`). At Normal: about 0.18 s thinking, 0.23 s for the roll, 0.2 s
-  to look at the die, a 0.14 s lift of the chosen token, 0.05 s per square hopped, and 0.16 s before the next
-  turn. **Reduced motion** keeps the pauses but drops the tumble, the hops and the
+  ×0.45 and Fast ×0.2 (`core/dice.js` `botDelay`). At Normal: about 0.18 s thinking, the 0.45 s die tumble
+  (the same at every speed; none with reduced motion), 0.2 s to look at the die, a 0.14 s lift of the chosen
+  token, 0.05 s per square hopped, and 0.16 s before the next turn. The auto-roll and auto-move pauses for humans
+  (0.23 s and 0.17 s) always use the Normal factor. **Reduced motion** keeps the pauses but drops the tumble, the hops and the
   pulsing: tokens jump straight to their square.
 
 ### 3.1 Bot strategy
@@ -231,7 +232,7 @@ card, reduced motion, and an offline reload that resumes mid-move.
 | Hard vs 3 Medium | 4000 | 46.0 % | 25 % |
 
 A 2-player game takes about 170-180 rolls. A 4-player game has its first finisher after about 400-500 rolls and
-ends (one player left) after about 510-600 (classic rules, 1000 games per line-up, seed 99, measured 2026-10-14
+ends (one player left) after about 510-610 (classic rules, 1000 games per line-up, seed 99, measured 2026-10-14
 for Hard vs Easy, Hard vs Medium, Hard vs 3 Easy, Hard vs 3 Medium and 4 Medium). Under house rules Hard beats
 Easy 92 % with blockades, 88 % with no safe squares, and 98 % with 1-or-6 exits plus both bonus rolls
 (more choices per roll reward the better chooser).
@@ -256,8 +257,8 @@ Easy 92 % with blockades, 88 % with no safe squares, and 98 % with 1-or-6 exits 
 ## 9. Save and testing
 
 - `ctx.store` blob: `{ setup: { players: [{ name, kind, level }] }, game: <in-progress game> | null }`. The game
-  state is plain JSON (`rules.js`); `loadGame()` brings saves from older versions up to date (v1 saves ended at the
-  first player home). It resumes mid-move, including during a bot's turn.
+  state is plain JSON (`rules.js`), currently `v: 3`; `loadGame()` brings saves from older versions up to date (v1
+  saves ended at the first player home). It resumes mid-move, including during a bot's turn.
 - `?autoplay` plays human seats with the Hard bot at Fast speed; `?debug` exposes
   `window.__ludo()` -> `{ save, g, moves, anim, passing }`.
 - Unit tests: `tests/ludo-rules.test.js` (every rule and house toggle), `tests/ludo-bot.test.js` (legal, finished
