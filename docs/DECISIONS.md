@@ -35,5 +35,5 @@ updates), so a half-updated app can't reach the phone.
 ## D4. Order of new games (agents proceed)
 
 Default order: **Farkle** (small, reuses the dice and seats code), **Backgammon** (bigger, dice plus a board and a
-bot), **Klondike** (adds a cards core that later card games reuse). Then ideas from PLAN.md E6. The owner can
+bot), **Klondike** (adds a cards core that later card games reuse). Then the ideas list at the end of PLAN.md Phase 2. The owner can
 reorder or veto here.

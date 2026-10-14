@@ -57,7 +57,7 @@ Work through the plan; don't wait for chat replies.
   in the file header plus `docs/CREDITS.md`. If a license is unclear, don't copy; write it up as blocked.
 - **Public-ready repo:** no secrets, tokens, personal names, home locations or private hostnames. The private
   reference material (`docs/ref/` and the `docs/*-spec.md` files listed in `.gitignore`) never gets committed
-  and is not available in cloud sessions; work from `docs/games/` and the code.
+  and is not available in cloud sessions; work from `docs/games/` (item R4) and the code.
 - Writing: plain, short sentences. Docs explain what and why. UI text uses British spelling, as the app does
   (colour, colourblind).
 
@@ -77,5 +77,6 @@ Work through the plan; don't wait for chat replies.
 - Headless checks: `tools/smoke.mjs` (item R3) drives Chromium over the DevTools protocol with no npm packages.
   It finds the browser via `$CHROME`, then common paths. Claude cloud sandboxes have Chromium under
   `/opt/pw-browsers`; don't run `playwright install`.
-- URL helpers for testing: `?level=N`, `?autoplay=1` and `?debug` (see each game's doc in `docs/games/`).
+- URL helpers for testing: `?level=N`, `?autoplay=1` and `?debug` (see docs/ARCHITECTURE.md, and each game's doc
+  in `docs/games/` once R4 is done).
 - Cloud sandboxes may block some hosts. If a lookup fails, record it as blocked rather than guessing.

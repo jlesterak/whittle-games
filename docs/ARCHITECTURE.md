@@ -100,7 +100,8 @@ Two players sit opposite (red and yellow). Spec and bot win rates: [docs/ludo-sp
 ## Testing
 
 - Unit tests: `node --test` (Node 20+). They cover rules, bots, solvers, generators, saves and past bugs.
-- `node tools/precache.mjs --check` fails if `sw.js` is missing a file (a test runs it too).
+- `node tools/precache.mjs --check` fails if the list in `sw.js` differs from the files on disk;
+  `tests/precache.test.js` checks the same list.
 - URL helpers for checking a game in a browser:
 
   Beadloom URL helpers for testing: `?level=N#/beadloom` jumps to level N,

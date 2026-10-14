@@ -58,10 +58,11 @@ tools/precache.mjs         (exists) service-worker file list
     from stderr, a small `send()` / `on()` client over Node's built-in `WebSocket`. Browser from `$CHROME`, then
     common paths (`/opt/pw-browsers/chromium-*/chrome-linux/chrome`, `google-chrome`, `chromium`).
   - `tools/smoke.mjs`: serve the repo with `node:http` on a free port; for the shelf and every game in
-    `games/index.js`, at 360x740 and 412x915 (touch, DPR 2.625) and 1440x900: open `?autoplay=1#/<id>`, wait,
-    then fail on uncaught exceptions, unhandled rejections, console errors and failed requests; fail if a visible
-    button sits outside the viewport or the canvas is one flat colour. Save PNGs to `.work/shots/`
-    (gitignored). Flags: `--game`, `--viewport WxH`, `--params`, `--wait`, `--out`.
+    `games/index.js`, at 360x740 and 412x915 (touch, DPR 3) and 1440x900: open `?autoplay=1#/<id>` (Yacht and
+    Ludo: tap Start), wait, then fail on uncaught exceptions, unhandled rejections, console errors and failed
+    requests; fail if a visible control is partly outside the viewport (wholly outside counts as parked, like a
+    slid-out banner) or a canvas is one flat colour soon after load. Save PNGs to `.work/shots/` (gitignored).
+    Flags: `--game`, `--viewport WxH`, `--params`, `--wait`, `--out`, `--jobs`, `--hires`.
   - Fix what it finds. Known: Chrome logs an error for `navigator.vibrate` before the first tap (autoplay buzzes),
     so `core/haptics.js` should skip vibration until `navigator.userActivation.hasBeenActive`.
   - Add the smoke run to CI (GitHub's Ubuntu runners have Chrome).
@@ -80,7 +81,7 @@ tools/precache.mjs         (exists) service-worker file list
   section references in Beadloom, Purl and Dotwork. Trim the per-game sections in ARCHITECTURE.md to a link each.
 - **Acceptance:** each doc covers the list above; numbers in it (slots, capacities, prices, knob ranges) match
   the code (the reviewer spot-checks ten); no commercial game names; no tracked file refers to a gitignored spec.
-- **Verify:** `git grep -n -E "(beadloom|purl|dotwork|yacht|ludo)-spec" -- ':!.gitignore'` prints nothing ;
+- **Verify:** `git grep -n -E "(beadloom|purl|dotwork|yacht|ludo)-spec" -- ':!.gitignore' ':!PLAN.md'` prints nothing ;
   `node --test`
 - **Depends:** R1
 
@@ -154,7 +155,7 @@ tools/precache.mjs         (exists) service-worker file list
 
 ### P6. Layout sweep
 - **Why:** the owner reported Beadloom is "still a little cut off in spots" on the phone (2026-10-09), with no
-  screenshot. Find it without one.
+  screenshot. Find it without one. (The 2026-10-08 fix covered Purl's frame and Beadloom's feeder arms.)
 - **Do:** smoke `--sweep`: Beadloom, Purl and Dotwork at levels 1, 2, 5, 10, 11, 20, 22, 25, 30, 40, 50, 55, 60
   (and Dotwork 80, 208) at 360x740, 384x693, 384x780 (a tall phone with browser bars), 412x915 and 915x412.
   Each renderer reports the design-space bounds of what it drew (track, board, slots, frames, arms); fail when
@@ -190,9 +191,12 @@ tools/precache.mjs         (exists) service-worker file list
 ### P9. [HUMAN] Play-test on the phone
 - Feel after P5-P6: sound mix, haptics strength, super-slow speed, the difficulty curve, Ludo powerups (do
   freeze and back-to-start feel too harsh?). Notes go in TODO.md Inbox.
+- **Depends:** P5, P6
 
 ### P10. [HUMAN] Beadloom recordings
-- Record a fill-booster use and a lift on a locked crate (still unrecorded). Agents: implement from the notes.
+- Record a fill-booster use and a lift on a locked crate (still unrecorded; two open questions in the private
+  Beadloom notes). Agents: implement from the notes.
+- **Depends:** none
 
 ---
 
@@ -268,6 +272,7 @@ tools/precache.mjs         (exists) service-worker file list
 
 ### X1h. [HUMAN] Publish
 - Owner decides D3 and enables Pages. Agents: check the live site with smoke against its URL afterwards.
+- **Depends:** X1
 
 ---
 
