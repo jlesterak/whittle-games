@@ -1,9 +1,12 @@
-// Service worker: precache every app file on install, then serve from cache
-// (stale-while-revalidate), so the app runs with zero network after the first load.
-// The FILES list is generated: run `node tools/precache.mjs` after adding or removing files
-// (tests/precache.test.js fails if it is out of date). Bump VERSION to force a full re-cache.
+// Service worker: precache every app file on install, then serve them from that cache, so the app runs with
+// zero network after the first load and always runs one consistent version.
+// The FILES list and VERSION are generated: run `node tools/precache.mjs` after changing any app file
+// (tests/precache.test.js fails if either is out of date). VERSION is a hash of every precached file, so any
+// change makes a new worker, which fetches a whole new cache. It waits until the page asks it to take over
+// (the shelf's "Update ready" button) or until every tab of the old version has closed: a running page never
+// mixes old and new files.
 
-const VERSION = 'v1';
+const VERSION = '85d8c3172fdb';
 const CACHE = `whittle-${VERSION}`;
 // prettier-ignore
 const FILES = [
@@ -70,12 +73,8 @@ const FILES = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches
-      .open(CACHE)
-      .then((c) => c.addAll(FILES))
-      .then(() => self.skipWaiting()),
-  );
+  // cache: 'reload' skips the HTTP cache, so a stale copy of one file can't slip into a new version
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES.map((f) => new Request(f, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', (e) => {
@@ -87,26 +86,24 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// The shelf's Reload button: take over now (the page reloads on controllerchange).
+self.addEventListener('message', (e) => {
+  if (e.data === 'skip-waiting') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const hit = await cache.match(req, { ignoreSearch: true });
-      const net = fetch(req)
-        .then((res) => {
-          if (res.ok) cache.put(req, res.clone());
-          return res;
-        })
-        .catch(() => null);
-      if (hit) {
-        e.waitUntil(net); // refresh in the background for next time
-        return hit;
+      if (hit) return hit;
+      try {
+        return await fetch(req);
+      } catch {
+        if (req.mode === 'navigate') return (await cache.match('./index.html')) || Response.error();
+        return Response.error();
       }
-      const res = await net;
-      if (res) return res;
-      if (req.mode === 'navigate') return (await cache.match('./index.html')) || Response.error();
-      return Response.error();
     }),
   );
 });

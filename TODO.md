@@ -6,7 +6,7 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P2 Whole updates, never mixed versions
+- P2 Whole updates, never mixed versions (done; waiting for the reviewer)
 - R4 Public game docs (written; waiting for the reviewer)
 
 ## [PENDING]

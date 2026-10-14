@@ -5,6 +5,7 @@
 //   node tools/smoke.mjs                          everything (shelf + all games x 3 viewports)
 //   node tools/smoke.mjs --game dotwork --viewport 360x740
 //   node tools/smoke.mjs --game beadloom --params "level=40" --wait 8
+//   node tools/smoke.mjs --sw                     offline start and a whole update, on a temporary copy
 //
 // Flags: --game id[,id] (shelf counts as a game), --viewport WxH[,WxH], --params "a=1&b=2" (added to the
 // URL; autoplay=1 unless --no-autoplay), --wait seconds after load (default 5), --out dir, --jobs n,
@@ -12,10 +13,12 @@
 // Exit code 1 if any page had a problem. Needs Chrome or Chromium (see tools/cdp.mjs findChrome).
 
 import { createServer } from 'node:http';
-import { createReadStream, mkdirSync, statSync } from 'node:fs';
+import { appendFileSync, cpSync, createReadStream, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { extname, join, normalize, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launch } from './cdp.mjs';
+import { render, TOP, DIRS } from './precache.mjs';
 import { games } from '../games/index.js';
 
 const ROOT = join(fileURLToPath(import.meta.url), '../..');
@@ -51,8 +54,13 @@ const TYPES = {
 };
 
 // A static server for the repo root (what `python3 -m http.server` does), on a free port.
-export function serve(root = ROOT) {
+// While net.offline is true every request fails like a dropped network connection.
+export function serve(root = ROOT, net = { offline: false }) {
   const server = createServer((req, res) => {
+    if (net.offline) {
+      req.socket.destroy();
+      return;
+    }
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (path.endsWith('/')) path += 'index.html';
     const file = normalize(join(root, path));
@@ -217,6 +225,75 @@ async function runOne(browser, base, { id, vp, params, wait, out, hires }) {
   return [...errors, ...problems];
 }
 
+// --sw: install, start offline, then take a whole update. Runs on a temporary copy of the app, since it edits a
+// file and regenerates sw.js there. Returns a list of problems.
+async function swCheck(browser, out) {
+  const dir = mkdtempSync(join(tmpdir(), 'whittle-sw-'));
+  for (const f of [...TOP, 'sw.js', ...DIRS]) cpSync(join(ROOT, f), join(dir, f), { recursive: true });
+  const net = { offline: false };
+  const { server, url } = await serve(dir, net);
+  const page = await browser.newPage(device('412x915'));
+  const errors = watchErrors(page);
+  const problems = [];
+  const until = async (expr, ms, what) => {
+    for (let t = 0; t < ms; t += 250) {
+      if (await page.eval(expr).catch(() => false)) return true;
+      await sleep(250);
+    }
+    problems.push(`timed out: ${what}`);
+    return false;
+  };
+  const cacheNames = () => page.eval('caches.keys()');
+  const uiHasMarker = () => page.eval(`fetch('./core/ui.js').then((r) => r.text()).then((t) => t.includes('sw-check marker'))`);
+  try {
+    // 1. first visit: the worker installs the whole app and takes control
+    await page.goto(url);
+    if (!(await until('!!navigator.serviceWorker.controller', 15000, 'service worker controls the page'))) return problems;
+    const first = await cacheNames();
+    if (first.length !== 1) problems.push(`expected one cache after install, got ${JSON.stringify(first)}`);
+
+    // 2. offline: the shelf and a game never opened before load from the cache
+    net.offline = true;
+    const before = errors.length;
+    await page.goto(url);
+    await until(`document.querySelector('.shelf') !== null`, 5000, 'shelf offline');
+    await page.eval(`location.hash = '#/dotwork'`);
+    await until(`document.querySelector('.game-root canvas') !== null`, 8000, 'Dotwork opens offline');
+    // the browser's own update check for sw.js fails while offline; that is expected, nothing else may fail
+    const offlineErrors = errors.splice(before).filter((e) => !/sw\.js/.test(e));
+    problems.push(...offlineErrors.map((e) => `offline: ${e}`));
+    await page.eval(`location.hash = ''`);
+    net.offline = false;
+
+    // 3. a new version: one file changes and sw.js is regenerated, as tools/precache.mjs does
+    appendFileSync(join(dir, 'core/ui.js'), '\n// sw-check marker\n');
+    writeFileSync(join(dir, 'sw.js'), render(readFileSync(join(dir, 'sw.js'), 'utf8'), dir));
+    await page.goto(url);
+    if (!(await until(`document.querySelector('.update-bar') !== null`, 15000, 'shelf offers the update'))) return problems;
+    mkdirSync(out, { recursive: true });
+    await page.screenshot(join(out, 'sw-update-bar.png'), { scale: 1 / page.dpr });
+    if (await uiHasMarker()) problems.push('the running page already sees new files before the update was taken');
+    if ((await cacheNames()).length !== 2) problems.push('the new version should wait in its own cache next to the old one');
+
+    // 4. take it: the page reloads onto the new version only, and the old cache is gone
+    const at = await findButton(page, 'Reload');
+    if (!at) return [...problems, 'no Reload button on the update bar'];
+    await page.tap(at.x, at.y);
+    await sleep(1500);
+    await until(`document.querySelector('.shelf') !== null && !document.querySelector('.update-bar')`, 8000, 'reloaded shelf without the bar');
+    if (!(await uiHasMarker())) problems.push('after the update the page still gets old files');
+    const after = await cacheNames();
+    if (after.length !== 1 || after[0] === first[0]) problems.push(`expected only the new cache, got ${JSON.stringify(after)}`);
+  } catch (e) {
+    problems.push(`smoke --sw: ${e.message}`);
+  } finally {
+    await page.close();
+    server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+  return [...errors, ...problems];
+}
+
 function num(flag, v, min) {
   const n = Number(v);
   if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
@@ -224,7 +301,7 @@ function num(flag, v, min) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false };
+  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -236,6 +313,7 @@ function parseArgs(argv) {
     else if (a === '--out') opts.out = next();
     else if (a === '--jobs') opts.jobs = num(a, next(), 1);
     else if (a === '--hires') opts.hires = true;
+    else if (a === '--sw') opts.sw = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
   const known = ['shelf', ...games.map((g) => g.id)];
@@ -255,6 +333,13 @@ async function main() {
     process.exit(2);
   }
   const t0 = Date.now();
+  if (opts.sw) {
+    const browser = await launch();
+    const problems = await swCheck(browser, opts.out).finally(() => browser.close());
+    console.log(problems.length ? 'FAIL service worker' : 'ok   service worker: installs, starts offline, updates whole');
+    for (const p of problems) console.log(`       ${p}`);
+    process.exit(problems.length ? 1 : 0);
+  }
   const { server, url } = await serve();
   const browser = await launch();
   const queue = opts.viewports.flatMap((vp) => opts.games.map((id) => ({ ...opts, id, vp })));

@@ -32,6 +32,7 @@ function route() {
 function showShelf() {
   closeCurrent();
   document.body.dataset.view = 'shelf';
+  checkForUpdate();
   app.replaceChildren(
     el(
       'div',
@@ -42,6 +43,13 @@ function showShelf() {
         el('h1', {}, 'Whittle'),
         el('button', { class: 'icon-btn', 'aria-label': 'Settings', onclick: () => openSettings() }, '⚙'),
       ),
+      update.waiting &&
+        el(
+          'div',
+          { class: 'update-bar', role: 'status' },
+          el('span', {}, 'Update ready'),
+          el('button', { class: 'btn btn-primary', onclick: applyUpdate }, 'Reload'),
+        ),
       el(
         'div',
         { class: 'cards' },
@@ -138,6 +146,30 @@ function openSettings({ meta, game, extra } = {}) {
   modal({ title: 'Settings', body: rows, actions, className: 'settings' });
 }
 
+// ---- updates ----
+// A new version installs in the background and waits (sw.js). The shelf offers it; it never interrupts a game.
+// Reload asks the waiting worker to take over, and the page reloads once it has.
+const update = { reg: null, waiting: null, applying: false, checked: 0 };
+
+function updateFound(worker) {
+  update.waiting = worker;
+  if (document.body.dataset.view === 'shelf') showShelf();
+}
+
+function applyUpdate() {
+  if (!update.waiting) return;
+  update.applying = true;
+  update.waiting.postMessage('skip-waiting');
+}
+
+// The installed app can stay open for days: look for a new version each time the shelf shows (at most every
+// 10 minutes). Offline this fails quietly.
+function checkForUpdate() {
+  if (!update.reg || Date.now() - update.checked < 600000) return;
+  update.checked = Date.now();
+  update.reg.update().catch(() => {});
+}
+
 // A body class games can style against (no animations, no lifts) when reduced motion is on.
 const applyMotion = () => document.body.classList.toggle('reduced-motion', !!settings.get('reducedMotion'));
 settings.onChange((key) => key === 'reducedMotion' && applyMotion());
@@ -149,5 +181,22 @@ window.addEventListener('hashchange', route);
 route();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW registration failed', e));
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (update.applying) location.reload();
+  });
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then((reg) => {
+      update.reg = reg;
+      update.checked = Date.now(); // registering just checked
+      // an update that finished installing earlier and is still waiting (needs a controller: not the first install)
+      if (reg.waiting && navigator.serviceWorker.controller) updateFound(reg.waiting);
+      const watch = (w) =>
+        w?.addEventListener('statechange', () => {
+          if (w.state === 'installed' && navigator.serviceWorker.controller) updateFound(w);
+        });
+      watch(reg.installing); // an update already under way
+      reg.addEventListener('updatefound', () => watch(reg.installing));
+    })
+    .catch((e) => console.warn('SW registration failed', e));
 }

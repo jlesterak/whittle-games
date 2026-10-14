@@ -39,8 +39,9 @@ Work through the plan; don't wait for chat replies.
   earns its place.
 - **Don't reinvent.** Reuse `core/` (stage fit, seats, dice, rng, ui, audio) and `engines/slotsort/`. When a second
   game needs something one game has, move it to `core/` instead of copying it.
-- **Offline always.** Every app file is in the service-worker precache (`node tools/precache.mjs`). No network
-  calls, CDNs, web fonts, analytics, ads or accounts.
+- **Offline always.** Every app file is in the service-worker precache. Run `node tools/precache.mjs` after any
+  change to an app file: it rewrites the file list and `VERSION` (a hash of the files) in `sw.js`, and the tests
+  fail until you do. No network calls, CDNs, web fonts, analytics, ads or accounts.
 - **Pure, seeded game logic.** Rules, bots, solvers and generators are DOM-free and take a seed (`core/rng.js`), so
   they can be unit-tested, solved and replayed. Rendering and input stay in `game.js` / `render.js`.
 - **Never break a save.** Players keep progress in localStorage. A change to a save's shape needs a migration or a

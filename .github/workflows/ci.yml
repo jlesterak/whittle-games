@@ -29,6 +29,8 @@ jobs:
           node-version: 22
       - name: Headless smoke check (every game at phone and desktop sizes)
         run: node tools/smoke.mjs
+      - name: Service worker (offline start, whole updates)
+        run: node tools/smoke.mjs --sw
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4

@@ -27,8 +27,9 @@ python3 -m http.server 8000   # from the repo root
 
 Tests (Node 20+): `node --test` (a few seconds).
 
-To install on a phone, open the page in the phone's browser and add it to the home screen. Saves live in the
-browser's localStorage; use Settings -> Export to keep a copy.
+To install on a phone, open the page in the phone's browser and add it to the home screen. New versions download
+in the background; the shelf shows **Update ready** when one is waiting. Saves live in the browser's localStorage;
+use Settings -> Export to keep a copy.
 
 ## Docs
 

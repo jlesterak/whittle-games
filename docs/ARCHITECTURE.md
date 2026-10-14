@@ -47,7 +47,8 @@ the rules for agents are in CLAUDE.md.
    };
    ```
 2. Add an entry (id, title, blurb, icon SVG, `load: () => import('./<id>/game.js')`) to `games/index.js`.
-3. Run `node tools/precache.mjs` so the service worker caches the new files (a test checks this).
+3. Run `node tools/precache.mjs` so the service worker caches the new files (a test checks this). Run it after
+   every change to an app file too: `VERSION` is a hash of the files.
 
 ### Slot-sort games (Beadloom, Purl, ...)
 
@@ -108,8 +109,8 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
   console errors, failed requests, a game that never draws, a blank canvas, or a control outside the screen (a bar
   parked out of view on purpose must be `visibility: hidden`). Screenshots go to
   `.work/shots/<viewport>/`. CI runs it and keeps the screenshots as a build artifact for a week.
-- `node tools/precache.mjs --check` fails if the list in `sw.js` differs from the files on disk;
-  `tests/precache.test.js` checks the same list.
+- `node tools/precache.mjs --check` fails if the file list or `VERSION` in `sw.js` is out of date;
+  `tests/precache.test.js` checks both.
 - URL helpers for checking a game in a browser:
 
   Beadloom URL helpers for testing: `?level=N#/beadloom` jumps to level N,
@@ -122,6 +123,15 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
 
 ## Updates
 
-`sw.js` serves from its cache and refreshes files in the background (stale-while-revalidate), so updates arrive
-one launch late. Bump `VERSION` in `sw.js` to force a full re-cache. (PLAN item P2 replaces this with
-content-hashed versions.)
+`sw.js` precaches every app file into a cache named after `VERSION`, a hash of all those files written by
+`node tools/precache.mjs`, and serves only from that cache. So:
+
+- Any change to any app file needs `node tools/precache.mjs` (the precache test fails otherwise). The changed
+  `sw.js` is what tells browsers there is a new version.
+- The browser installs the new worker in the background (whole new cache, fetched past the HTTP cache) and lets
+  it wait. A running page never mixes old and new files.
+- The shelf then shows **Update ready** with a Reload button (never during a game). Reload hands over to the new
+  worker and reloads; otherwise the new version starts the next time every tab of the app has closed.
+- The shelf looks for a new version whenever it shows, at most every 10 minutes.
+- `node tools/smoke.mjs --sw` checks the whole path headless: install, an offline start (shelf and a game never
+  opened before), then an update that stays out of the running page until Reload, and leaves only the new cache.
