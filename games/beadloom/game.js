@@ -538,10 +538,10 @@ const CSS = `
 .bo-stage { position: absolute; left: 0; top: 0; width: 1080px; height: 2316px; transform-origin: 0 0; pointer-events: none;
   font-family: ui-rounded, 'Arial Rounded MT Bold', system-ui, Roboto, sans-serif; font-weight: 900; color: #fff; }
 .bo-stage :where(button) { pointer-events: auto; border: 0; padding: 0; font: inherit; color: inherit; background: none; }
-.bo-gear { position: absolute; left: 52px; top: 151px; width: 96px; height: 96px; border-radius: 50%;
+.bo-gear { position: absolute; left: 52px; top: -146px; width: 96px; height: 96px; border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #3b74d0, #1d4796); border: 6px solid #f3b62a; box-shadow: 0 6px 0 #0003; }
 .bo-gear svg { width: 70%; height: 70%; margin-top: 4px; }
-.bo-level { position: absolute; left: 422px; top: 155px; width: 236px; height: 84px; border-radius: 26px;
+.bo-level { position: absolute; left: 422px; top: -142px; width: 236px; height: 84px; border-radius: 26px;
   background: linear-gradient(#2f62c0, #1d4796); border: 5px solid #16367a; box-shadow: inset 0 4px 0 #ffffff30, 0 6px 0 #0003;
   display: flex; align-items: center; justify-content: center; font-size: 40px; text-shadow: 0 3px 0 #0005; }
 .bo-level .bo-skull, .bo-level .bo-tag { display: none; }
@@ -562,12 +562,12 @@ const CSS = `
   border: 6px solid #fff !important; color: #fff !important; font-size: 58px !important; line-height: 58px; box-shadow: 0 6px 0 #0004; }
 .bo-tooltip .bo-x { right: -24px; top: -24px; }
 .bo-tooltip:not(.show) .bo-x { pointer-events: none; }
-.bo-coins { position: absolute; right: 60px; top: 160px; height: 76px; min-width: 210px; padding: 0 84px 0 24px; border-radius: 22px;
+.bo-coins { position: absolute; right: 60px; top: -138px; height: 76px; min-width: 210px; padding: 0 84px 0 24px; border-radius: 22px;
   background: linear-gradient(#fbf6e4, #e7dcc0); border: 5px solid #1d4796; color: #fff; font-size: 46px;
   display: flex; align-items: center; -webkit-text-stroke: 9px #2b2440; paint-order: stroke fill; }
 .bo-coins i { position: absolute; right: -14px; top: -10px; width: 92px; height: 92px; }
 .bo-coins svg, .bo-boost i svg, .bo-next i svg, .bo-pile i svg { width: 100%; height: 100%; display: block; }
-.bo-speed { position: absolute; left: 880px; top: 780px; width: 180px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bo-speed { position: absolute; left: 20px; top: 780px; width: 180px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .bo-speed span { font-size: 34px; color: #fff; -webkit-text-stroke: 8px #24306a; paint-order: stroke fill; }
 .bo-pill { position: relative; width: 150px; height: 74px; border-radius: 37px; background: #5bcf3c; border: 5px solid #2e6fbf;
   box-shadow: inset 0 -6px 0 #0002; display: flex; align-items: center; padding-left: 14px; font-size: 34px; color: #fff;
@@ -580,7 +580,7 @@ const CSS = `
 .bo-speed[data-speed=normal] .bo-pill i { left: 86px; }
 .bo-speed[data-speed=fast] .bo-pill { background: #f39a1d; padding-left: 22px; -webkit-text-stroke: 7px #7a3d00; }
 .bo-speed[data-speed=fast] .bo-pill i { left: 86px; }
-.bo-turbo { position: absolute; left: 880px; top: 960px; width: 180px; text-align: center; font-size: 96px; line-height: 80px;
+.bo-turbo { position: absolute; left: 20px; top: 960px; width: 180px; text-align: center; font-size: 96px; line-height: 80px;
   color: #ffd84a; -webkit-text-stroke: 12px #7a3d00; paint-order: stroke fill; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s; }
 .bo-turbo small { display: block; font-size: 36px; line-height: 40px; -webkit-text-stroke: 8px #7a3d00; }
 .bo-turbo.show { opacity: 1; transform: none; animation: bo-ff .5s infinite alternate; }

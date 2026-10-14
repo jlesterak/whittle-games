@@ -10,6 +10,11 @@
 - Jake: play-test feel on the phone (sound mix, haptics strength, super-slow speed, difficulty curve) after the clipping fix
 
 ## [COMPLETED]
+- Beadloom track layout (Jake, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
+  never shrink below a round hole (dropped the scaled-down and pinched hourglass shapes), feeder arms sit at the
+  screen sides and merge at an angle instead of running alongside the ring, waiting rows stop at the ring's edge and
+  draw over it, HUD moved up into the headroom and the speed toggle to the left so neither covers an arm.
+  Checked headless at 412x780 / 412x915 on levels 1, 5-11, 40, 55 (rings of 80-130 rows)
 - Jake play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
 - Ludo powerups board (Jake, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
   effects (jump +3 / +6, swap, shield, roll again, back to start, back, freeze), used squares respawn, icon layer,
