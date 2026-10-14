@@ -1,4 +1,4 @@
-// Purl canvas renderer. Everything is drawn in design pixels (1080x2316 portrait, spec
+// Purl canvas renderer. Everything is drawn in design pixels (1080x2316 portrait, ref
 // 6.1) through one transform; sprites are pre-rendered at device resolution. The static parts
 // (wallpaper, floor, frame, slot wells, board tiles and voids) live on a cached layer. Animated
 // state comes from the sim (thread progress uses sim time) plus a few short-lived effects.
@@ -15,7 +15,7 @@ export const H = 2316;
 export const FIT = { W, H, top: 175 };
 const PIC_BOTTOM = 590;
 const FRAME_TOP = -170; // the frame's top rail: the picture feeds down from behind it
-const KNIT_TOP = -128; // the knit's bottom edge (spec 1.1)
+const KNIT_TOP = -128; // the knit's bottom edge (ref 1.1)
 const FRAME_BOTTOM = 628;
 const SLOT_Y = 1007;
 const SLOT_W = 113;

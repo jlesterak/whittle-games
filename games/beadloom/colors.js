@@ -1,4 +1,4 @@
-// The 19 piece colours sampled from the original (spec 6.2). Index = colour id used everywhere.
+// The 19 piece colours sampled from the original (ref 6.2). Index = colour id used everywhere.
 // sym = colourblind symbol id (see sprites.js drawSymbol).
 
 export const COLORS = [
@@ -27,7 +27,7 @@ export const NCOLORS = COLORS.length;
 export const HIDDEN_BEAD = '#242b31';
 export const C = Object.fromEntries(COLORS.map((c, i) => [c.name.replace(' ', ''), i]));
 
-// UI themes (spec 6.2): background and empty-slot colours.
+// UI themes (ref 6.2): background and empty-slot colours.
 export const THEMES = [
   { name: 'lavender', bg: '#a0a8e1', slot: '#c3c5e0', rail: '#8596e0', rail2: '#97a9ec' },
   { name: 'blue', bg: '#a6c8e2', slot: '#c3d8e1', rail: '#7fa6d6', rail2: '#93b8e0' },

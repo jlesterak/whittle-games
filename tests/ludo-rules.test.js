@@ -1,4 +1,4 @@
-// Ludo move rules and house-rule switches (docs/ludo-spec.md 1-2): yard exit, captures, safe
+// Ludo move rules and house-rule switches (docs/games/ludo.md 1-2): yard exit, captures, safe
 // squares, blockades, exact finish, extra rolls, three 6s, the win.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

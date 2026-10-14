@@ -1,4 +1,4 @@
-// Level 208 from the first recording, reconstructed cell by cell (spec section 7): 36 x 45,
+// Level 208 from the first recording, reconstructed cell by cell (ref section 7): 36 x 45,
 // 163 arrows. Two heads were ambiguous and are best guesses: blue (30,36) -> R, red (20,41) -> R.
 // Played as the real level 208 and used as the regression fixture.
 import { parseArrows } from './board.js';

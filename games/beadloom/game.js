@@ -68,7 +68,7 @@ export default {
       speedChip,
     );
     const modeTip = el('div', { class: 'bo-tip' });
-    // Move Box tooltip while the lift booster is armed (spec C.3)
+    // Move Box tooltip while the lift booster is armed (ref C.3)
     const liftTip = el(
       'div',
       { class: 'bo-tooltip' },
@@ -343,7 +343,7 @@ export default {
       updateHud(true);
     }
 
-    // Out of space (spec C.4): the game dims around the lit slot row, with Add space (a +1 slot
+    // Out of space (ref C.4): the game dims around the lit slot row, with Add space (a +1 slot
     // booster, or coins) and an X that gives up to the Level failed card. Lives are left out.
     function showLose() {
       sounds.lose();
@@ -466,7 +466,7 @@ export default {
       if (steps === 8) acc = 0;
       if (autoplay) autoStep();
       handleEvents(now);
-      // idle hint (spec C.3): no tap for a while -> point at the usable boosters
+      // idle hint (ref C.3): no tap for a while -> point at the usable boosters
       if (sim.status === 'playing' && !overlay && !mode && now - lastInput > IDLE_HINT && now - lastHint > 14) {
         lastHint = now;
         root.classList.add('bo-hint');
@@ -525,7 +525,7 @@ export default {
   },
 };
 
-// "Hard" on spike levels (every 10th), "Very Hard" once the spike tops the curve (spec C.1).
+// "Hard" on spike levels (every 10th), "Very Hard" once the spike tops the curve (ref C.1).
 function levelTag_(n) {
   if (n % 10) return null;
   return difficulty(n) >= 0.9 ? 'Very Hard' : 'Hard';

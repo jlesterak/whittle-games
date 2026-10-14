@@ -1,5 +1,5 @@
 // Yacht rules: scoring, legal boxes (forced or free Joker), the upper and Yacht bonuses, and
-// the Triple card (three columns worth x1 x2 x3). Pure and DOM-free; see docs/yacht-spec.md 1-2.
+// the Triple card (three columns worth x1 x2 x3). Pure and DOM-free; see docs/games/yacht.md.
 //
 // A card is { cols: [[score|null x 13], ...], ybonus: n }, one column (classic) or three (triple).
 // Boxes are addressed as (col, cat) with cat an index into CATS.

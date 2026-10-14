@@ -1,4 +1,4 @@
-// Ludo powerups (docs/ludo-spec.md 2.1): placement, each effect, no chaining, saves, bots.
+// Ludo powerups (docs/games/ludo.md 2.1): placement, each effect, no chaining, saves, bots.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { makeRng } from '../core/rng.js';

@@ -14,11 +14,11 @@ import { CRATE_ROWS } from './rules.js';
 export const FIT = { W, H, top: 160 };
 
 export const LAYOUT = {
-  // column-aware and centred: 6-col boards (spec C.2) use a tighter pitch, 5-col a wider one.
+  // column-aware and centred: 6-col boards (ref C.2) use a tighter pitch, 5-col a wider one.
   // Bigger pitch than before so crates read larger and more tappable.
   colPitch: (cols) => (cols >= 6 ? 162 : 182),
   colX: (c, cols = 5) => 540 + (c - (cols - 1) / 2) * LAYOUT.colPitch(cols),
-  // bottom-anchored (spec 3.1): hugs the booster bar and grows upward, space above.
+  // bottom-anchored (ref 3.1): hugs the booster bar and grows upward, space above.
   rowY: (r, rows) => 1920 - (rows - 1 - r) * 166,
   slotY: 1050,
   slotX: (s, K) => 540 + (s - (K - 1) / 2) * 162,

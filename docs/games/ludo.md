@@ -1,9 +1,14 @@
-# Ludo: game-design spec
+# Ludo
 
 Jake's brief: "classic rules, house-rule toggles, bots, pass-and-play".
 There is no recording to copy. The rules are the common modern Ludo ones (four tokens, a 6 to come out,
 start squares and star squares are safe). The screens are our own, built on the shared `core/` that
 Yacht added for this game: seats and seat colours, the pass card, the pip die and bot pacing.
+
+Sources: https://en.wikipedia.org/wiki/Ludo (checked 2026-10-14) describes entering on a 6, the bonus roll after a 6,
+three 6s ending the turn, capture by landing, safe start squares and the exact roll to finish. Star squares as
+extra safe squares are a common modern variant not described there (unverified), and that page's blockade rule
+differs from our house toggle (there, a token landing on a block is sent home).
 
 How sure each item is: **[R]** = classic rule, **[H]** = house rule or a variant we define ourselves,
 **[D]** = a design choice, open to change after play-testing.
@@ -238,3 +243,14 @@ Easy 92 % with blockades, 88 % with no safe squares, and 98 % with 1-or-6 exits 
 - Is the near-token tap radius right, or does it pick the wrong token in crowded spots?
 - Auto-move: helpful, or does it surprise?
 - Does Hard feel clearly stronger than Medium without being unfair?
+
+## 8. Save and testing
+
+- `ctx.store` blob: `{ setup: { players: [{ name, kind, level }] }, game: <in-progress game> | null }`. The game
+  state is plain JSON (`rules.js`); `loadGame()` brings saves from older versions up to date (v1 saves ended at the
+  first player home). It resumes mid-move, including during a bot's turn.
+- `?autoplay` plays human seats with the Hard bot at Fast speed; `?debug` exposes
+  `window.__ludo()` -> `{ save, g, moves, anim, passing }`.
+- Unit tests: `tests/ludo-rules.test.js` (every rule and house toggle), `tests/ludo-bot.test.js` (legal, finished
+  games under every rule mix; Hard beats Easy), `tests/ludo-powerups.test.js` (placement, each effect, no chaining,
+  saves, bots).

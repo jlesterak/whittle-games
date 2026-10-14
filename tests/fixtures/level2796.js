@@ -1,4 +1,4 @@
-// Level 2796 from the recording (spec section 7): the exact board, specials and pick log.
+// Level 2796 from the recording (ref section 7): the exact board, specials and pick log.
 // The real ring/feeder contents were not fully visible, so the bead stream is built from the
 // logged pick order with no jitter (the order the player actually used).
 import { C } from '../../games/beadloom/colors.js';

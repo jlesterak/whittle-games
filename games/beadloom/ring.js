@@ -1,4 +1,4 @@
-// Beadloom supply: a rotating ring of bead rows fed by two feeders (spec 1, 8.1).
+// Beadloom supply: a rotating ring of bead rows fed by two feeders (ref 1, 8.1).
 //
 // The ring is a fixed circular array of row cells (colour or -1 for empty) that rotates one
 // position per row of travel; it never compacts. Positions along the travel direction: spout at
@@ -200,7 +200,7 @@ export class RingSupply {
   }
 }
 
-// Abstract supply model for the solver (spec 8.2): only multisets matter, in whole segments.
+// Abstract supply model for the solver (ref 8.2): only multisets matter, in whole segments.
 // State: segment counts per colour in the ring, empty segment slots, feeder pointers.
 export const ringModel = {
   init(level, ncolors = 32) {
@@ -252,7 +252,7 @@ export const ringModel = {
   },
 };
 
-// Turn an intended pick order into ring + feeders (spec 8.4 steps 4-5): each crate gives two
+// Turn an intended pick order into ring + feeders (ref 8.4 steps 4-5): each crate gives two
 // segments keyed near its place in the order, jittered by J; the first ringSegs form the ring
 // (shuffled), the rest go to the right feeder (drains first), then the left.
 export function streamFromOrder(order, { jitter, ringSegs, hidden }, rng) {

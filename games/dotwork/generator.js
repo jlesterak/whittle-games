@@ -1,4 +1,4 @@
-// Dotwork level generator (spec 8.3, 8.4). Deterministic per level number and winnable by
+// Dotwork level generator (ref 8.3, 8.4). Deterministic per level number and winnable by
 // construction: the board is partitioned into random snakes, then oriented by forward peeling
 // (repeatedly pick an unoriented snake with an end whose outward ray is clear of every other
 // unoriented snake, make that end its head). The pick order is a solution. A few seeds are
@@ -14,7 +14,7 @@ import { level208 } from './level208.js';
 export const isHard = (n) => n >= 5 && n % 5 === 0;
 const isBreather = (n) => n > 5 && n % 5 === 1;
 
-// Silhouettes over u, v in [-1, 1] (spec 1.1: boards are pictures, level 209 is not a rectangle).
+// Silhouettes over u, v in [-1, 1] (ref 1.1: boards are pictures, level 209 is not a rectangle).
 const SHAPES = {
   circle: (u, v) => u * u + v * v <= 1.02,
   diamond: (u, v) => Math.abs(u) + Math.abs(v) <= 1.08,
@@ -32,7 +32,7 @@ const SHAPES = {
 };
 const SHAPE_ORDER = ['circle', 'diamond', 'heart', 'plus', 'ring', 'hourglass'];
 
-// Difficulty knobs per level number (spec 8.4). t: 0 at level 1, 1 at level 80.
+// Difficulty knobs per level number (ref 8.4). t: 0 at level 1, 1 at level 80.
 export function knobs(n) {
   const t = Math.min(1, (n - 1) / 80);
   const hard = isHard(n);
@@ -81,7 +81,7 @@ const neighbours = (W, H, c) => {
   return out;
 };
 
-// Random snake partition of the mask (spec 8.3 step 3). Returns paths of >= 2 cells.
+// Random snake partition of the mask (ref 8.3 step 3). Returns paths of >= 2 cells.
 function partition(k, mask, rng) {
   const { W, H } = k;
   const owner = new Int32Array(W * H).fill(-1);
@@ -161,7 +161,7 @@ function partition(k, mask, rng) {
     }
   }
   const out = paths.filter(Boolean);
-  // thin to the fill target by dropping random short paths (the empty cells of spec 1.1)
+  // thin to the fill target by dropping random short paths (the empty cells of ref 1.1)
   const total = mask.reduce((s, v) => s + v, 0);
   let filled = out.reduce((s, p) => s + p.length, 0);
   rng.shuffle(out);
@@ -174,7 +174,7 @@ function partition(k, mask, rng) {
   return out;
 }
 
-// Forward peeling with a free choice of head (spec 8.3 step 4). Returns oriented paths in
+// Forward peeling with a free choice of head (ref 8.3 step 4). Returns oriented paths in
 // removal order, or null if repairs ran out. Removal only frees cells, so an end that is free
 // stays free; after each removal only ends in the freed rows / columns are rechecked.
 function orient(k, paths, rng) {
@@ -258,7 +258,7 @@ function orient(k, paths, rng) {
   }
 }
 
-// Colours (spec 8.3 step 6): rectangles get the least-used colour among each arrow's
+// Colours (ref 8.3 step 6): rectangles get the least-used colour among each arrow's
 // neighbours (so side-by-side arrows differ); pictures get concentric bands, one colour each.
 function colour(k, paths, rng, n) {
   const { W, H } = k;

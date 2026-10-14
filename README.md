@@ -33,7 +33,7 @@ browser's localStorage; use Settings -> Export to keep a copy.
 ## Docs
 
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): layout, the game module interface, adding a game, testing helpers.
-- [docs/ludo-spec.md](docs/ludo-spec.md): Ludo rules, house rules and bots.
+- [docs/games/](docs/games/): one doc per game: rules, levels, boosters, bots, saves, test helpers.
 - [docs/DECISIONS.md](docs/DECISIONS.md): open questions for the owner.
 - [docs/CREDITS.md](docs/CREDITS.md): third-party sources.
 - [CLAUDE.md](CLAUDE.md): how AI agents work on this repo.

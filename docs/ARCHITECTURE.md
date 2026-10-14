@@ -1,7 +1,7 @@
 # Whittle architecture
 
-How the shell, the shared code and the games fit together. For what each game does, see `docs/games/`
-(item R4); the rules for agents are in CLAUDE.md.
+How the shell, the shared code and the games fit together. For what each game does, see `docs/games/`;
+the rules for agents are in CLAUDE.md.
 
 ## Principles
 
@@ -27,7 +27,8 @@ How the shell, the shared code and the games fit together. For what each game do
 - `games/index.js` : the shelf's game list
 - `games/<id>/` : one folder per game
 - `docs/` : this file, the game docs (`docs/games/`), decisions and credits. Private reference
-  material (`docs/ref/`, most `docs/*-spec.md`) is gitignored and never committed.
+  material (`docs/ref/`, most `docs/*-spec.md`) is gitignored and never committed. Code comments that cite
+  `ref <section>` (e.g. `ref C.3`) point into those private notes; what the code does is in `docs/games/`.
 - `tools/precache.mjs` : regenerates the service worker's file list
 - `tests/` : `node:test` unit tests and level fixtures
 
@@ -69,7 +70,8 @@ with a column-stack supply (`columns.js`: 3-5 columns unravelling bottom-up, who
 3 blocks per bobbin, scissors via the engine's fill, balloon hooks), 7 slots, persistent facing
 dispensers, hidden board tiles and its own board outlines with voids (`knitMask`). Optional engine
 hooks it uses: `cfg.claimDelay`, `knobs.maxPerColour`, `game.mask`. Dotwork is a different kind
-of game and only shares `core/`.
+of game and only shares `core/`. Rules and details: [beadloom.md](games/beadloom.md),
+[purl.md](games/purl.md).
 
 ### Dotwork
 
@@ -78,7 +80,7 @@ peel solver: a level is winnable iff peeling free arrows empties it), `generator
 of a rectangle or picture mask, oriented by forward peeling so every level is winnable by
 construction; knobs per level, hard every 5th), `level208.js` (the recorded level), `render.js` (the
 pan/zoom camera and all animations), `game.js` (HUD, four boosters, end screens, input: tap on
-release, drag pans, pinch / wheel zoom, double-tap on empty space toggles fit and 2x).
+release, drag pans, pinch / wheel zoom, double-tap on empty space toggles fit and 2x). Rules and details: [dotwork.md](games/dotwork.md).
 
 ### Yacht
 
@@ -86,7 +88,7 @@ release, drag pans, pinch / wheel zoom, double-tap on empty space toggles fit an
 `bot.js` (exact one-turn hold search over 252 rolls x 462 holds; Hard / Medium differ in the end-of-turn
 value, Easy is a rule of thumb), `game.js` (setup, play, pass card, game over, high scores, save/resume),
 `sounds.js`. Seats, the pass card, the die view and bot pacing are in `core/` for Ludo to reuse.
-Bot averages: see the Yacht doc (R4).
+Rules, house rules and measured bot averages: [yacht.md](games/yacht.md).
 
 ### Ludo
 
@@ -95,7 +97,7 @@ captures, safe squares, blockades, exact finish, extra rolls, three 6s, standing
 Medium priorities with a random move 1 in 4, Hard scores captures, progress and the drop in risk to its
 tokens), `board.js` (15x15 geometry laid out for red and rotated per corner, the SVG board, token layout
 with stacks fanned out), `game.js` (setup, play, pass card, game over, save/resume), `sounds.js`.
-Two players sit opposite (red and yellow). Spec and bot win rates: [docs/ludo-spec.md](ludo-spec.md).
+Two players sit opposite (red and yellow). Rules, house rules and bot win rates: [ludo.md](games/ludo.md).
 
 ## Testing
 

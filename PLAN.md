@@ -77,12 +77,14 @@ tools/precache.mjs         (exists) service-worker file list
 - **Do:** `docs/games/{beadloom,purl,dotwork,yacht,ludo}.md`, written from the code and the tests, in our own
   words: what the player does, rules, win and lose, boosters and coins, difficulty knobs by level, settings,
   save shape and versioning, test URL helpers, known gaps. Move `docs/ludo-spec.md` to `docs/games/ludo.md`.
-  Yacht's classic rules cite a public source. Point code comments at the new docs, including the `spec C.3`-style
-  section references in Beadloom, Purl and Dotwork. Trim the per-game sections in ARCHITECTURE.md to a link each.
+  Yacht's classic rules cite a public source. Point README and code comments at the new docs; the `spec C.3`-style
+  section references to the private notes become `ref C.3`, explained in ARCHITECTURE.md and CLAUDE.md. Each
+  per-game section in ARCHITECTURE.md links its doc.
 - **Acceptance:** each doc covers the list above; numbers in it (slots, capacities, prices, knob ranges) match
-  the code (the reviewer spot-checks ten); no commercial game names; no tracked file refers to a gitignored spec.
+  the code (the reviewer spot-checks ten); the puzzle docs don't name the commercial games they were modelled on;
+  no tracked file points a reader at a gitignored spec.
 - **Verify:** `git grep -n -E "(beadloom|purl|dotwork|yacht|ludo)-spec" -- ':!.gitignore' ':!PLAN.md'` prints nothing ;
-  `node --test`
+  `git grep -n -w -E "[Ss]pec" -- core engines games tests tools` prints nothing ; `node --test`
 - **Depends:** R1
 
 ---

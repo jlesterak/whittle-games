@@ -47,7 +47,7 @@ function knobs(n, rng) {
     d,
     crates,
     colours,
-    // 6-column boards are a very-hard feature (spec C.2, level 2803); otherwise 5 wide.
+    // 6-column boards are a very-hard feature (ref C.2, level 2803); otherwise 5 wide.
     cols: n >= 22 && d > 0.78 && rng.chance(0.5) ? 6 : 5,
     jitter: n <= 2 ? 0 : 1 + 6 * d,
     swaps: use.has('swaps') ? Math.min(5, 1 + Math.floor(d * 4 + rng.next())) : 0,

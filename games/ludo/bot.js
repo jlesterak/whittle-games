@@ -1,4 +1,4 @@
-// Ludo bots (docs/ludo-spec.md 3.1). Every bot picks from legalMoves(), so none can break a rule.
+// Ludo bots (docs/games/ludo.md 3.1). Every bot picks from legalMoves(), so none can break a rule.
 // Easy: random. Medium: fixed priorities, with a random move one time in four. Hard: scores each move by captures, progress and how much
 // it lowers the risk to its own tokens (the chance an opponent can land on each next turn, times
 // what that token would lose).

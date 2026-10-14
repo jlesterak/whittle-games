@@ -1,4 +1,4 @@
-// Yacht bots (docs/yacht-spec.md 3.1). Pure and DOM-free.
+// Yacht bots (docs/games/yacht.md). Pure and DOM-free.
 //
 // Hard and Medium search the hold choices exactly for the rest of the turn ("one-turn optimal"):
 // over the 252 distinct rolls of five dice and the 462 hold multisets, with 4368 hold -> roll
@@ -14,7 +14,7 @@ export const LEVELS = ['easy', 'medium', 'hard'];
 // Average score of each box under optimal solitaire play (Verhoeff), the opportunity cost of
 // using it now.
 const PAR = [1.88, 5.28, 8.57, 12.16, 15.69, 19.19, 21.66, 13.1, 22.59, 29.46, 32.71, 16.87, 22.01];
-const SPREAD = 0.7; // sd of an upper box's score, in dice of that face (tuned by simulation, spec 6)
+const SPREAD = 0.7; // sd of an upper box's score, in dice of that face (tuned by simulation)
 const PARK = 16; // open boxes over which the cost slides from one-turn to full-game averages (tuned)
 
 // ---- tables ----

@@ -1,4 +1,4 @@
-// Purl level 254 from the recordings (spec section 7): the exact board, dispensers and
+// Purl level 254 from the recordings (ref section 7): the exact board, dispensers and
 // the lost game's pick log. The six "?" bobbins never revealed, so their colours are guesses
 // (spread over the picture's colours); r5c5 revealed yellow. Only the bottom of the picture was
 // visible, so the full level's columns are dealt from a plausible pick order with no jitter.
@@ -10,7 +10,7 @@ const x = (c) => ({ c });
 const h = (c) => ({ c, hidden: true });
 const { red, yellow, purple, beige, gray, green, blue, cyan, orange } = C;
 
-// 6 x 6, row 0 at the top. Voids: r3c3-c5, r4c2-c4, r5c3 (1-based as in the spec).
+// 6 x 6, row 0 at the top. Voids: r3c3-c5, r4c2-c4, r5c3 (1-based as in the ref notes).
 export const board254 = {
   cols: 6,
   rows: 6,

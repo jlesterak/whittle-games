@@ -1,4 +1,4 @@
-// Ludo: game module (docs/ludo-spec.md). Setup is plain responsive DOM like Yacht's; play sits in
+// Ludo: game module (docs/games/ludo.md). Setup is plain responsive DOM like Yacht's; play sits in
 // a fixed design space fitted by core/stage.js (portrait 1080 wide, or 1900x1000 with the board on
 // the right). Rules in rules.js, bots in bot.js, board drawing in board.js; seats, the pass card,
 // the die and bot pacing come from core/.
@@ -21,7 +21,7 @@ const BG = '#1d3a4f';
 const PORTRAIT = { W: 1080, H: 1660 };
 const WIDE = { W: 1900, H: 1000 };
 const WIDE_AT = 1.15; // aspect (w / h) above which the board goes on the right
-const PACE = { power: 750, roll: 500, think: 400, look: 450, lift: 300, hop: 110, next: 350, none: 950, auto: 380, capture: 600, place: 2600 }; // ms at Normal (spec 3)
+const PACE = { power: 750, roll: 500, think: 400, look: 450, lift: 300, hop: 110, next: 350, none: 950, auto: 380, capture: 600, place: 2600 }; // ms at Normal (docs/games/ludo.md 3)
 const ROLL_MS = 450;
 const TAP_RADIUS = 1.25; // board squares: a tap this close to a movable token picks it
 const ICONS = { back: icons.back(), gear: icons.gear(BG), bot: icons.bot(BG), crown: icons.crown() };

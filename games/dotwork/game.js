@@ -13,13 +13,13 @@ const DW = 1080;
 const MIN_H = 1760; // design height that must always fit: HUD + end screens + boosters
 const HUD_BOTTOM = 200;
 const BOOST_TOP = 240; // from the bottom of the stage
-const PRICE = 100; // coins per booster and per "+1 star" (spec 3, 4.3 [G])
-const REWARD = 5; // per star left (spec 3: +5 for a 1-star clear), doubled on hard levels
-const START_BOOSTERS = { hint: 9, erase: 3, wand: 4, guide: 5 }; // spec 4.3
-const WAND_MAX = 10; // spec unknown 4: the batch looked like 8-10 arrows
+const PRICE = 100; // coins per booster and per "+1 star" (ref 3, 4.3 [G])
+const REWARD = 5; // per star left (ref 3: +5 for a 1-star clear), doubled on hard levels
+const START_BOOSTERS = { hint: 9, erase: 3, wand: 4, guide: 5 }; // ref 4.3
+const WAND_MAX = 10; // ref unknown 4: the batch looked like 8-10 arrows
 const LEVEL_GEN = 1; // bump when the generator changes: an in-progress save restarts its level
 const TAP_MS = 350;
-const SLOP = 10; // px a touch may move and still be a tap (spec 4.1)
+const SLOP = 10; // px a touch may move and still be a tap (ref 4.1)
 
 const ICONS = {
   gear: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="20" fill="none" stroke="#8d96b8" stroke-width="11" stroke-dasharray="8.4 7.3"/><circle cx="32" cy="32" r="16" fill="#8d96b8"/><circle cx="32" cy="32" r="7" fill="#19243f"/></svg>`,
@@ -242,7 +242,7 @@ export default {
       updateHud();
     }
 
-    // ---- boosters (spec 4.3) ----
+    // ---- boosters (ref 4.3) ----
     function spend(key) {
       if (save.boosters[key] > 0) {
         save.boosters[key]--;
@@ -445,7 +445,7 @@ export default {
       updateHud(true);
     }
 
-    // Out of Stars (spec 3): +1 star for coins keeps the board, or give up.
+    // Out of Stars (ref 3): +1 star for coins keeps the board, or give up.
     function showOutOfStars() {
       sounds.lose();
       const afford = save.coins >= PRICE;

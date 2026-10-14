@@ -150,7 +150,7 @@ export function tokenSvg(corner, symbols) {
 ${symbols ? `<g fill="#fff" transform="scale(0.85)">${SHAPES[corner]}</g>` : ''}</svg>`;
 }
 
-// ---- powerups (spec 2.1) ----
+// ---- powerups (docs/games/ludo.md 2.1) ----
 // Each effect: a colour and a white icon drawn in a -0.5..0.5 box. Colour and shape both differ, so no
 // effect depends on telling two colours apart.
 const ST = 'fill="none" stroke="#fff" stroke-width="0.075" stroke-linecap="round" stroke-linejoin="round"';

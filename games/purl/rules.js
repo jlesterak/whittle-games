@@ -14,9 +14,9 @@ export const MAX_ROWS = 7;
 
 export const CONFIG = {
   capacity: BOBBIN_ROWS, // a bobbin holds 3 blocks of 6 stitch rows
-  completeDelay: 0.2, // hold at 100 %, then pop (spec 2.4)
-  ejectTime: 0.2, // dispenser slide (spec 3.4)
-  claimDelay: 0.7, // lands 0.45 s after the tap, thread shoots at ~0.7 s (spec 2.2)
+  completeDelay: 0.2, // hold at 100 %, then pop (ref 2.4)
+  ejectTime: 0.2, // dispenser slide (ref 3.4)
+  claimDelay: 0.7, // lands 0.45 s after the tap, thread shoots at ~0.7 s (ref 2.2)
   maxSlots: SLOTS + 1, // Continue after Out of space opens an 8th slot
   slots: SLOTS,
   speeds: SPEEDS,
@@ -24,7 +24,7 @@ export const CONFIG = {
 
 export const createSim = (level) => new SlotSim(level, CONFIG, new ColumnSupply(level));
 
-// HARD every 5th level from 5 on (spec 8.4: "every ~5th level, higher J and more hidden").
+// HARD every 5th level from 5 on (ref 8.4: "every ~5th level, higher J and more hidden").
 export const isHard = (n) => n >= 5 && n % 5 === 0;
 
 // Difficulty d ramps 0 -> 1 over levels 1..60 and wanders in the upper range after that.
@@ -35,7 +35,7 @@ export function difficulty(n) {
   return d;
 }
 
-// Knobs (spec 8.4 table; level 254 = 4 columns, 9 colours, 33 bobbins, 7/27 hidden, 2 x 3
+// Knobs (ref 8.4 table; level 254 = 4 columns, 9 colours, 33 bobbins, 7/27 hidden, 2 x 3
 // dispensers, 7 slots).
 function knobs(n, rng) {
   const d = difficulty(n);
