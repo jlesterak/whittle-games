@@ -53,10 +53,12 @@ Work through the plan; don't wait for chat replies.
 - **Never invent facts.** Rules of classic games cite a source (a rulebook or a URL) in the game's doc. Bot win
   rates, frame rates and timings are measured, and the doc says how. If you can't verify something, write
   `(unverified)` next to it.
-- **Original work only.** Classic public-domain games (Ludo, Yacht, Backgammon, Klondike) are fine. Never copy art,
-  names, sounds, text or level data from commercial games. Anything copied or ported from another project needs its
-  license checked (permissive or GPL-compatible: MIT, BSD, Apache-2.0, LGPL, GPL, public domain) and attribution
-  in the file header plus `docs/CREDITS.md`. If a license is unclear, don't copy; write it up as blocked.
+- **Original work only, public domain.** The project is released under the Unlicense (public domain, `LICENSE`).
+  Classic public-domain games (Ludo, Yacht, Backgammon, Klondike) are fine. Never copy art, names, sounds, text or
+  level data from commercial games. Write it yourself where you can. Anything copied or ported from another project
+  must not add conditions: public domain, CC0 or 0BSD are fine; MIT, BSD, ISC or Apache-2.0 only if unavoidable,
+  with the notice in the file header and in `docs/CREDITS.md` (that file then keeps its own license); never GPL or
+  LGPL. If a license is unclear, don't copy; write it up as blocked.
 - **Public-ready repo:** no secrets, tokens, personal names, home locations or private hostnames. The private
   reference material (`docs/ref/` and the `docs/*-spec.md` files listed in `.gitignore`) never gets committed
   and is not available in cloud sessions; work from `docs/games/` and the code. Comments citing `ref <section>`

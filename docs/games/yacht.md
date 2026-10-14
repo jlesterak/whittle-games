@@ -33,7 +33,7 @@ A game keeps the rules it started with; changes apply to the next game. **Play a
 the current settings.
 
 Note: the free-choice Joker described on the page cited above only gives the Joker values once the matching upper
-box is filled. Ours is more generous. It is a house rule, so it stays unless the owner wants it changed.
+box is filled. Ours is more generous; the owner chose to keep it as a house rule (docs/DECISIONS.md D5).
 
 ## Seats and bots
 
@@ -71,7 +71,6 @@ list is filled with empty ones.
 
 ## Known gaps
 
-- Our free Joker is more generous than the free-choice rule on the cited page (see House rules).
 - The Triple card's multipliers and its per-column Joker are our own house variant; no public source is cited.
 - No migration path exists yet for a `v: 2` game record; a shape change would need one (CLAUDE.md, "Never break
   a save").

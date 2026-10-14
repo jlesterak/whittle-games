@@ -265,27 +265,37 @@ tools/precache.mjs         (exists) service-worker file list
 
 ## Phase 3: Ship
 
-### X1. Hosting files
-- **Do:** a GitHub Pages workflow that publishes the repo root as-is from master after CI passes, gated so it does
-  nothing until the owner enables Pages (D3). `docs/INSTALL.md`: install from Chrome or Firefox on Android and
-  Safari on iOS, how updates arrive (P2), export the save before changing phones.
-- **Acceptance:** the workflow is valid and skipped while Pages is off; INSTALL.md steps match the app. Note for
-  other hosts: one that redirects `/index.html` to `/` would break the offline fallback for navigations (the
-  cached copy is a redirect); GitHub Pages does not redirect.
-- **Verify:** the workflow run on the PR shows the deploy job skipped; follow INSTALL.md against a local server
-  in a phone-sized headless browser (manifest and service worker load, `beforeinstallprompt` fires).
+### X1. Install guide and a live-site check
+- **Why:** Pages is on (D3) and serves `master` as-is, so a merge is a release. No deploy workflow is needed.
+- **Do:** `docs/INSTALL.md`: install from Chrome or Firefox on Android and Safari on iOS, how updates arrive (P2),
+  export the save before changing phones, moving from a copy served elsewhere (saves don't follow the address).
+  `tools/smoke.mjs --url <base>` runs the normal smoke against a live site instead of a local server. Note for
+  other hosts: one that redirects `/index.html` to `/` would break the offline fallback for navigations.
+- **Acceptance:** INSTALL.md steps match the app; `--url https://jlesterak.github.io/whittle-games/` passes once
+  PR #3 is merged (before that, it runs against the old build: record what it finds).
+- **Verify:** `node tools/smoke.mjs --url https://jlesterak.github.io/whittle-games/`
 - **Depends:** P2
-
-### X1h. [HUMAN] Publish
-- Owner decides D3 and enables Pages. Agents: check the live site with smoke against its URL afterwards.
-- **Depends:** X1
 
 ---
 
-## Decisions (details and recommendations in docs/DECISIONS.md)
+## Decisions (details in docs/DECISIONS.md)
 
-- **D1. [HUMAN]** License for the repo (it is public and has none yet).
-- **D2. [HUMAN]** Level data reconstructed from recordings of commercial games: keep, or swap for generated boards.
-- **D3. [HUMAN]** Host a public build on GitHub Pages?
+- **D1.** License: settled 2026-10-14, the Unlicense (public domain).
+- **D2.** Reconstructed level data: settled 2026-10-14, swap for generated boards (item D2s below).
+- **D3.** Hosting: settled 2026-10-14, Pages on, serving `master`.
 - **D4.** Order of new games. Not blocking (no TODO entry): agents follow the order above unless the owner
   changes it in DECISIONS.md.
+- **D5.** Yacht's free Joker: settled 2026-10-14, stays as a house rule.
+
+### D2s. Swap the reconstructed boards for generated ones
+- **Why:** the owner chose to drop the three boards rebuilt from recordings of commercial games (D2).
+- **Do:** delete `games/dotwork/level208.js` (level 208 becomes an ordinary generated level; bump Dotwork's
+  `LEVEL_GEN` so an in-progress save of the old board restarts), `tests/fixtures/level2796.js` and
+  `tests/fixtures/level254.js`. Rewrite the tests that used them around generated levels of similar size, keeping
+  what each test protected (rules, solver, replay, save round trip). Remove code only the recorded boards needed
+  (the arrow text parser, if nothing else uses it). Update docs/games, DECISIONS D2 and comments that cite those
+  boards.
+- **Acceptance:** none of the three files exist; `git grep -n -E "level208|level2796|level254"` finds only history
+  notes (TODO.md, DECISIONS.md); every test still passes and still covers what it did; smoke passes.
+- **Verify:** `node --test` ; `node tools/smoke.mjs` ; `node tools/smoke.mjs --game dotwork --params "level=208"`
+- **Depends:** none

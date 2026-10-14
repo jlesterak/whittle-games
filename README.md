@@ -38,3 +38,11 @@ use Settings -> Export to keep a copy.
 - [docs/DECISIONS.md](docs/DECISIONS.md): open questions for the owner.
 - [docs/CREDITS.md](docs/CREDITS.md): third-party sources.
 - [CLAUDE.md](CLAUDE.md): how AI agents work on this repo.
+
+## Play it
+
+https://jlesterak.github.io/whittle-games/ (GitHub Pages, from `master`).
+
+## License
+
+Public domain: [the Unlicense](LICENSE). Do anything you like with it.

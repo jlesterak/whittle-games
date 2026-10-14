@@ -1,6 +1,6 @@
 # Credits
 
-Whittle uses no third-party code, fonts, images or sounds. Art is drawn in code (Canvas 2D and inline SVG) and
+Whittle is public domain (the Unlicense, see `LICENSE`). It uses no third-party code, fonts, images or sounds. Art is drawn in code (Canvas 2D and inline SVG) and
 sounds are synthesised with WebAudio at run time.
 
 When something is copied or ported from another project, list it here with its URL, license and the files that

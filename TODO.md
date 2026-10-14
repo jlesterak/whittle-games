@@ -9,6 +9,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - P5 Beadloom track junction (done; waiting for the reviewer)
 
 ## [PENDING]
+- D2s Swap the reconstructed boards for generated ones (owner, 2026-10-14)
 - P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
 - P6h [HUMAN] Check clipping on the phone
 - P7 Frame-rate budget
@@ -20,13 +21,11 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - E3 Farkle
 - E4 Backgammon
 - E5 Cards core and Klondike
-- X1 Hosting files
-- X1h [HUMAN] Publish
-- D1 [HUMAN] License
-- D2 [HUMAN] Reconstructed level data
-- D3 [HUMAN] Public hosting
+- X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-14: owner decisions: D1 the Unlicense (public domain), D2 swap the rebuilt boards (D2s), D3 Pages on
+  (serves master), D5 Yacht's free Joker stays a house rule
 - 2026-10-14: P3 save safety: repaired record, cleanSave/cleanPlayers, refused damaged resumes, kept copies
   (<id>.broken, three deep), could-not-start card, import confirm + backup; smoke --saves 57 cases + fallback
 - 2026-10-14: P4 6-column Beadloom boards: already worked (old TODO item stale); checked headless, layout test added
