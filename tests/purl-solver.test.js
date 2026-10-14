@@ -26,7 +26,8 @@ test('solver finds the one winning order, and proves a clogged level unwinnable'
 });
 
 // Level 45 is hard: 27 bobbins, 11 hidden, two facing dispensers, 4 columns. The generator's intended order must be
-// legal on the board alone, every "?" must be shown before it is picked, and the empty domes must stay.
+// legal on the board alone, every "?" must be shown the moment it can be picked (not sooner, not later) and before it
+// is picked, and the empty domes must stay.
 test('level 45 (hidden bobbins + dispensers): the intended order is legal, reveals each "?" first, and wins', () => {
   const lvl = generateLevel(45);
   const b = createBoard(lvl.board);
@@ -43,7 +44,10 @@ test('level 45 (hidden bobbins + dispensers): the intended order is legal, revea
     assert.equal(b.hid[cell], 0, `pick ${k + 1}: a "?" is shown before it is picked`);
     applyPick(b, cell, null);
     computeReach(b, reach);
-    revealed += revealReachable(b, reach).length;
+    const shown = revealReachable(b, reach);
+    for (const i of shown) assert.ok(reach[i], `pick ${k + 1}: the "?" at ${i} was shown before it could be picked`);
+    for (let i = 0; i < b.n; i++) if (b.hid[i]) assert.equal(reach[i], 0, `pick ${k + 1}: the pickable "?" at ${i} stays hidden`);
+    revealed += shown.length;
   }
   assert.equal(revealed, hidden, 'every "?" was revealed on the way');
   b.disps.forEach((d, i) => {

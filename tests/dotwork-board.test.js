@@ -17,11 +17,18 @@ test('a big board: no overlap, every cell an arrow covers counted once, no ray t
   });
 });
 
-test('a big board: greedy peel clears it, in the layers the generator recorded', () => {
+test('a big board: greedy peel clears it, each layer every arrow free at that point, as the generator recorded', () => {
   const lvl = big();
   const p = peel(lvl);
   assert.ok(p.ok);
   assert.equal(p.layers.length, lvl.meta.layers);
+  // checked against the tap rule, not peel itself: each layer is exactly the arrows free then, and they all escape
+  const b = createBoard(lvl);
+  p.layers.forEach((layer, k) => {
+    assert.deepEqual(layer, freeArrows(b), `layer ${k + 1} is every arrow free at that point`);
+    for (const id of layer) assert.ok(fire(b, id)?.ok, `layer ${k + 1}: arrow ${id} escapes`);
+  });
+  assert.equal(b.status, 'won');
   assert.ok(p.layers.length >= 20, `deep enough to exercise the solver (${p.layers.length} layers)`);
   assert.equal(p.layers.flat().length, lvl.arrows.length, 'every arrow leaves exactly once');
 });

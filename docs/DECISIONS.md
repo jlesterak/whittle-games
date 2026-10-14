@@ -21,10 +21,10 @@ fetched 2026-10-14, in `LICENSE`). Code copied in must not add conditions: see C
 
 Some boards were rebuilt by hand from screen recordings of commercial games, as test fixtures and one playable
 level. Methods of play are not protected by copyright (see docs/CREDITS.md), but a specific level layout might
-be, and the repo is public. The files (P1, 2026-10-14):
+be, and the repo is public. The files, found in P1 and deleted in D2s (2026-10-14):
 
-- `games/dotwork/level208.js`: a Dotwork board rebuilt cell by cell from a recording. It is playable as level 208
-  and is the fixture in `tests/dotwork-board.test.js` and `tests/dotwork-generator.test.js`.
+- `games/dotwork/level208.js`: a Dotwork board rebuilt cell by cell from a recording. It was playable as level 208
+  and was the fixture in `tests/dotwork-board.test.js` and `tests/dotwork-generator.test.js`.
 - `tests/fixtures/level2796.js`: a Beadloom board, its special tiles and a logged pick order from a recording
   (`tests/beadloom-solver.test.js`). The level number 2796 also appears in the solver test's list of generated
   levels, which is only a number.
@@ -44,7 +44,8 @@ generated board of the same size and difficulty (the tests only need its shape a
 playable level 208 with a generated level. **Owner, 2026-10-14: "swap for generated boards."** Done in PLAN item
 D2s: the three boards are deleted, level 208 is generated like any other, and the tests that used them now check
 generated levels with the same mix. The generator targets tuned to recorded levels stay (they are numbers, not
-boards).
+boards). Level 208 is now an ordinary generated level, no longer a hard one, and Dotwork's `LEVEL_GEN` went up, so
+a Dotwork level in progress restarts once (the save's other progress is kept).
 
 ## D3. Public hosting (settled 2026-10-14)
 

@@ -43,24 +43,42 @@ test('solver respects swap pairs (needs the second pick to land on the right col
 });
 
 // Level 33 has 8 swap crates and a dispenser: the generator's intended order must be legal on the board alone
-// (exit paths, swaps toggling, the dispenser refilling and vanishing), clear it, and win in the real simulation.
+// (exit paths, swap crates trading colours, the dispenser putting out its queue in order and vanishing), clear it, and
+// win in the real simulation.
 test('level 33 (swaps + dispenser): the intended order is legal pick by pick, clears the board and wins', () => {
   const lvl = generateLevel(33);
   const b = createBoard(lvl.board);
   assert.ok(b.disps.length >= 1 && lvl.board.cells.filter((c) => c && c.alt !== undefined).length >= 2, 'swaps and a dispenser');
-  runDispensers(b, null);
+  const fed = b.disps.map(() => []); // colours each dispenser put out, in order
+  const first = newPickInfo();
+  runDispensers(b, first);
+  for (const e of first.ejects) fed[e.disp].push(e.color);
   const reach = new Uint8Array(b.n);
-  let toggles = 0;
-  let ejects = 0;
+  let swapped = 0;
   for (const [k, cell] of lvl.meta.solution.entries()) {
     computeReach(b, reach);
     assert.ok(canPick(b, cell, reach), `pick ${k + 1} (cell ${cell}) should be pickable`);
+    const was = { color: b.color.slice(), alt: b.alt.slice(), pair: b.pair.slice() };
     const info = newPickInfo();
     applyPick(b, cell, info);
-    if (info.toggled) toggles++;
-    ejects += info.ejects.length;
+    for (let j = 0; j < b.n; j++) {
+      if (j === cell || was.pair[j] < 0) continue;
+      if (was.pair[j] === was.pair[cell]) {
+        // the picked crate's partner stops swapping and keeps the colour it shows
+        assert.ok(b.pair[j] === -1 && b.color[j] === was.color[j], `pick ${k + 1}: partner ${j} keeps its colour`);
+      } else {
+        assert.ok(b.color[j] === was.alt[j] && b.alt[j] === was.color[j], `pick ${k + 1}: swap crate ${j} swapped colours`);
+        swapped++;
+      }
+    }
+    for (const e of info.ejects) {
+      assert.equal(b.color[e.to], e.color, `pick ${k + 1}: the ejected crate has the colour it was sent with`);
+      fed[e.disp].push(e.color);
+    }
   }
-  assert.ok(toggles > 0 && ejects > 0, 'the swaps toggled and the dispenser refilled along the way');
+  assert.ok(swapped > 0, 'the swaps swapped along the way');
+  b.disps.forEach((d, i) => assert.deepEqual(fed[i], d.queue, `dispenser ${i} put out its queue in order`));
+  assert.ok(fed.flat().length > 0, 'the dispenser refilled');
   assert.ok(boardCleared(b), 'board and dispenser empty');
   assert.ok(replay(lvl, lvl.meta.solution).ok, 'intended order wins in the sim');
   const s = solve(lvl, { slots: 4 });

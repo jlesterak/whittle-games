@@ -6,7 +6,7 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- D2s Swap the reconstructed boards for generated ones (done; waiting for the reviewer)
+- D2s Swap the reconstructed boards for generated ones (review fixes in; waiting for the re-check)
 - P5 Beadloom track junction (done; waiting for the reviewer)
 
 ## [PENDING]
