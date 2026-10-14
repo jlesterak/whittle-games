@@ -8,7 +8,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 ## [IN PROGRESS]
 - P3 Save safety
 - P2 Whole updates, never mixed versions (done; waiting for the reviewer)
-- R4 Public game docs (written; waiting for the reviewer)
 
 ## [PENDING]
 - P4 Beadloom 6-column boards: check the old TODO item
@@ -31,6 +30,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: R4 public game docs: docs/games/{beadloom,purl,dotwork,yacht,ludo}.md from the code, numbers checked
+  by three reviews; comments cite public docs or `ref` notes; Yacht and Ludo figures re-measured
 - 2026-10-14: P1 public-ready pass: no personal names in tracked files, no secrets or private hosts, D2 lists the
   boards rebuilt from recordings and what else was measured from them
 - 2026-10-14: R3 headless smoke check: tools/cdp.mjs + tools/smoke.mjs (no npm packages), 18 pages in ~35 s, in CI

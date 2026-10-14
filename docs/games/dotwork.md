@@ -39,7 +39,7 @@ order is a solution, so every level is winnable by construction, and generation 
 Six seeds are tried per level; the one closest to the level's targets (peel depth, share of arrows free at the
 start) is kept.
 
-Knobs by level (`knobs(n)`; t = (n - 1) / 80, from 0 at level 1 to 1 at level 81):
+Knobs by level (`knobs(n)`; t = min(1, (n - 1) / 80), from 0 at level 1 to 1 from level 81):
 
 | Level | Board | Colours | Target peel layers | Free at start |
 |---|---|---|---|---|

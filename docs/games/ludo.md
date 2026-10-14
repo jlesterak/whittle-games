@@ -39,7 +39,8 @@ How sure each item is: **[R]** = classic rule, **[H]** = house rule or a variant
 - **No legal move:** the turn passes (still rolling again on a 6).
 - **End [D]:** the first player with all four tokens home wins and takes 1st place; play goes on for the other
   places, skipping finished players, until one player is left. If only bots are left, they are ranked by
-  progress (total steps travelled, a token home counting 57) instead of being played out.
+  progress (`progress()`: each token's step + 1, so a yard token counts 0 and a token home 57) instead of being
+  played out.
 
 ## 2. House rules (Settings → Ludo) [H]
 
