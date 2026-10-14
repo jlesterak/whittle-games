@@ -267,7 +267,9 @@ tools/precache.mjs         (exists) service-worker file list
 - **Do:** a GitHub Pages workflow that publishes the repo root as-is from master after CI passes, gated so it does
   nothing until the owner enables Pages (D3). `docs/INSTALL.md`: install from Chrome or Firefox on Android and
   Safari on iOS, how updates arrive (P2), export the save before changing phones.
-- **Acceptance:** the workflow is valid and skipped while Pages is off; INSTALL.md steps match the app.
+- **Acceptance:** the workflow is valid and skipped while Pages is off; INSTALL.md steps match the app. Note for
+  other hosts: one that redirects `/index.html` to `/` would break the offline fallback for navigations (the
+  cached copy is a redirect); GitHub Pages does not redirect.
 - **Verify:** the workflow run on the PR shows the deploy job skipped; follow INSTALL.md against a local server
   in a phone-sized headless browser (manifest and service worker load, `beforeinstallprompt` fires).
 - **Depends:** P2

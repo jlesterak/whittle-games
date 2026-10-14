@@ -137,7 +137,11 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
 - The browser installs the new worker in the background (whole new cache, fetched past the HTTP cache) and lets
   it wait. A running page never mixes old and new files.
 - The shelf then shows **Update ready** with a Reload button (never during a game). Reload hands over to the new
-  worker and reloads; otherwise the new version starts the next time every tab of the app has closed.
+  worker and reloads; otherwise the new version starts the next time every tab of the app has closed. A launch
+  that starts on the shelf while an update is already waiting takes it at once.
+- If another tab takes the update, this page reloads straight away when it is on the shelf; a game in progress
+  keeps running (its modules are already loaded) and the page reloads the next time it routes.
 - The shelf looks for a new version whenever it shows, at most every 10 minutes.
 - `node tools/smoke.mjs --sw` checks the whole path headless: install, an offline start (shelf and a game never
-  opened before), then an update that stays out of the running page until Reload, and leaves only the new cache.
+  opened before), then an update that arrives mid-game (no bar until the shelf), stays out of the running page
+  until Reload, leaves only the new cache, and moves a second tab onto the new version when it leaves its game.

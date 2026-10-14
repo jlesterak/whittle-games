@@ -138,8 +138,12 @@ export async function connect(url) {
 
 
 // A tab in a fresh browser context with a phone or desktop viewport.
-async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = false, touch = mobile } = {}) {
-  const { browserContextId } = await conn.send('Target.createBrowserContext', { disposeOnDetach: true });
+// sameContextAs: another page, to open a second tab of the same browser profile (shared storage and workers).
+async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = false, touch = mobile, sameContextAs } = {}) {
+  const ownContext = !sameContextAs;
+  const { browserContextId } = ownContext
+    ? await conn.send('Target.createBrowserContext', { disposeOnDetach: true })
+    : { browserContextId: sameContextAs.contextId };
   const { targetId } = await conn.send('Target.createTarget', { url: 'about:blank', browserContextId });
   const { sessionId } = await conn.send('Target.attachToTarget', { targetId, flatten: true });
   const send = (method, params) => conn.send(method, params, sessionId);
@@ -166,6 +170,7 @@ async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = fals
   await send('Emulation.setFocusEmulationEnabled', { enabled: true });
 
   const page = {
+    contextId: browserContextId,
     width,
     height,
     dpr,
@@ -211,7 +216,7 @@ async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = fals
     async close() {
       off();
       await conn.send('Target.closeTarget', { targetId }).catch(() => {});
-      await conn.send('Target.disposeBrowserContext', { browserContextId }).catch(() => {});
+      if (ownContext) await conn.send('Target.disposeBrowserContext', { browserContextId }).catch(() => {});
     },
   };
   return page;

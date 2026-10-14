@@ -23,6 +23,8 @@ function closeCurrent() {
 }
 
 function route() {
+  // another tab took an update: this page's next lazy import would come from the new version, so start over
+  if (update.stale) return location.reload();
   const id = location.hash.replace(/^#\/?/, '');
   const meta = games.find((g) => g.id === id);
   if (meta) openGame(meta);
@@ -185,7 +187,7 @@ function openSettings({ meta, game, extra } = {}) {
 // ---- updates ----
 // A new version installs in the background and waits (sw.js). The shelf offers it; it never interrupts a game.
 // Reload asks the waiting worker to take over, and the page reloads once it has.
-const update = { reg: null, waiting: null, applying: false, checked: 0 };
+const update = { reg: null, waiting: null, applying: false, stale: false, checked: 0 };
 
 function updateFound(worker) {
   update.waiting = worker;
@@ -218,15 +220,23 @@ route();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (update.applying) location.reload();
+    if (update.applying) return location.reload();
+    // Another tab took the update. A game keeps running (its modules are all loaded); the page reloads as soon
+    // as it routes again (route() checks stale), or right now on the shelf.
+    update.stale = true;
+    if (document.body.dataset.view === 'shelf') location.reload();
   });
   navigator.serviceWorker
     .register('./sw.js')
     .then((reg) => {
       update.reg = reg;
       update.checked = Date.now(); // registering just checked
-      // an update that finished installing earlier and is still waiting (needs a controller: not the first install)
-      if (reg.waiting && navigator.serviceWorker.controller) updateFound(reg.waiting);
+      // An update that finished installing earlier and is still waiting (a controller means it isn't the first
+      // install). Starting on the shelf, take it now: nothing is lost by a reload this early.
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        updateFound(reg.waiting);
+        if (document.body.dataset.view === 'shelf') applyUpdate();
+      }
       const watch = (w) =>
         w?.addEventListener('statechange', () => {
           if (w.state === 'installed' && navigator.serviceWorker.controller) updateFound(w);

@@ -244,6 +244,7 @@ async function swCheck(browser, out) {
     problems.push(`timed out: ${what}`);
     return false;
   };
+  let tab = null;
   const cacheNames = () => page.eval('caches.keys()');
   const uiHasMarker = () => page.eval(`fetch('./core/ui.js').then((r) => r.text()).then((t) => t.includes('sw-check marker'))`);
   try {
@@ -266,17 +267,27 @@ async function swCheck(browser, out) {
     await page.eval(`location.hash = ''`);
     net.offline = false;
 
-    // 3. a new version: one file changes and sw.js is regenerated, as tools/precache.mjs does
+    // 3. a new version arrives while a game is open: no bar mid-game, and a second tab sits in another game
     appendFileSync(join(dir, 'core/ui.js'), '\n// sw-check marker\n');
     writeFileSync(join(dir, 'sw.js'), render(readFileSync(join(dir, 'sw.js'), 'utf8'), dir));
-    await page.goto(url);
-    if (!(await until(`document.querySelector('.update-bar') !== null`, 15000, 'shelf offers the update'))) return problems;
+    await page.goto(`${url}?step=3#/dotwork`); // a new query: a full load, not a same-page hash change
+    if (!(await until(`navigator.serviceWorker.getRegistration().then((r) => !!(r && r.waiting))`, 15000, 'new version installed and waiting'))) return problems;
+    if (await page.eval(`!!document.querySelector('.update-bar')`)) problems.push('the update bar showed during a game');
+    tab = await browser.newPage({ ...device('412x915'), sameContextAs: page });
+    errors.push(...watchErrors(tab));
+    await tab.goto(`${url}#/yacht`);
+    await sleep(800);
+    await tab.eval('window.__tabB = 1');
+
+    // 4. back on the shelf the update is offered; the running page still gets old files until it is taken
+    await page.eval(`location.hash = ''`);
+    if (!(await until(`document.querySelector('.update-bar') !== null`, 5000, 'shelf offers the update'))) return problems;
     mkdirSync(out, { recursive: true });
     await page.screenshot(join(out, 'sw-update-bar.png'), { scale: 1 / page.dpr });
     if (await uiHasMarker()) problems.push('the running page already sees new files before the update was taken');
     if ((await cacheNames()).length !== 2) problems.push('the new version should wait in its own cache next to the old one');
 
-    // 4. take it: the page reloads onto the new version only, and the old cache is gone
+    // 5. take it: this page reloads onto the new version only, and the old cache is gone
     const at = await findButton(page, 'Reload');
     if (!at) return [...problems, 'no Reload button on the update bar'];
     await page.tap(at.x, at.y);
@@ -285,9 +296,23 @@ async function swCheck(browser, out) {
     if (!(await uiHasMarker())) problems.push('after the update the page still gets old files');
     const after = await cacheNames();
     if (after.length !== 1 || after[0] === first[0]) problems.push(`expected only the new cache, got ${JSON.stringify(after)}`);
+
+    // 6. the other tab: its game is not interrupted, and it starts over on the new version when it leaves the game
+    if ((await tab.eval('window.__tabB')) !== 1) problems.push('the other tab reloaded in the middle of its game');
+    await tab.eval(`location.hash = ''`);
+    let fresh = false;
+    for (let t = 0; t < 8000 && !fresh; t += 250) {
+      fresh = await tab.eval(`window.__tabB === undefined && !!document.querySelector('.shelf')`).catch(() => false);
+      if (!fresh) await sleep(250);
+    }
+    if (!fresh) problems.push('the other tab did not reload when it left its game');
+    else if (!(await tab.eval(`fetch('./core/ui.js').then((r) => r.text()).then((t) => t.includes('sw-check marker'))`))) {
+      problems.push('the other tab still gets old files after reloading');
+    }
   } catch (e) {
     problems.push(`smoke --sw: ${e.message}`);
   } finally {
+    await tab?.close();
     await page.close();
     server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -450,7 +475,7 @@ async function main() {
   if (opts.sw) {
     const browser = await launch();
     const problems = await swCheck(browser, opts.out).finally(() => browser.close());
-    console.log(problems.length ? 'FAIL service worker' : 'ok   service worker: installs, starts offline, updates whole');
+    console.log(problems.length ? 'FAIL service worker' : 'ok   service worker: installs, starts offline, updates whole (also mid-game, two tabs)');
     for (const p of problems) console.log(`       ${p}`);
     process.exit(problems.length ? 1 : 0);
   }

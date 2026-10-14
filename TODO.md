@@ -7,7 +7,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 
 ## [IN PROGRESS]
 - P3 Save safety (done; waiting for the reviewer)
-- P2 Whole updates, never mixed versions (done; waiting for the reviewer)
 
 ## [PENDING]
 - P4 Beadloom 6-column boards: check the old TODO item
@@ -30,6 +29,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: P2 whole updates: VERSION is a content hash, a new worker waits for the shelf's Update ready /
+  Reload, other tabs move over when they leave their game; smoke --sw covers offline, mid-game and two tabs
 - 2026-10-14: R4 public game docs: docs/games/{beadloom,purl,dotwork,yacht,ludo}.md from the code, numbers checked
   by three reviews; comments cite public docs or `ref` notes; Yacht and Ludo figures re-measured
 - 2026-10-14: P1 public-ready pass: no personal names in tracked files, no secrets or private hosts, D2 lists the
