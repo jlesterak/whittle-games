@@ -270,7 +270,7 @@ export function drawKey(g, x, y, s, hex, angle = -0.5) {
 
 // Dispenser: grey metal box, corrugated top, big count, a stripe showing the next colour.
 // side: 0 = ejects downward (stripe on the front lip), -1 / 1 = faces left / right (stripe on
-// that side, spec C.2).
+// that side, ref C.2).
 export function drawDispenser(g, x, y, w, h, count, nextHex, open = 0, side = 0) {
   g.save();
   g.translate(x - w / 2, y - h / 2);
@@ -316,7 +316,7 @@ export function drawDispenser(g, x, y, w, h, count, nextHex, open = 0, side = 0)
   if (open < 0.5) outlinedText(g, String(count), x + side * 8, y - h * 0.12, 64, '#fff', '#2b2e3a', 9);
 }
 
-// Ice crate (spec C.2): a translucent blue cube hiding the crate, with the beads still to collect.
+// Ice crate (ref C.2): a translucent blue cube hiding the crate, with the beads still to collect.
 export function drawIce(g, x, y, w, h, label) {
   g.save();
   g.translate(x - w / 2, y - h / 2);

@@ -1,4 +1,4 @@
-// Slot-sort engine level generator (Beadloom spec 8.4, generalised). Level n is deterministic.
+// Slot-sort engine level generator (Beadloom ref 8.4, generalised). Level n is deterministic.
 //
 // 1. Knobs from the level number (game.knobs).
 // 2. Board: shape, crate colours (1-2 crates per colour), then dispensers, swap pairs, locks,

@@ -1,4 +1,4 @@
-// Dotwork renderer: a pan/zoom camera over the arrow grid and every animation (spec 2.2,
+// Dotwork renderer: a pan/zoom camera over the arrow grid and every animation (ref 2.2,
 // 2.3, 4.3, 5.3, 5.4). Board coordinates are in cells; cell (x, y) has its centre at
 // (x + .5, y + .5). Screen (CSS px) = o + board * pitch. Arrows are drawn as a window of
 // length (cells - 1) sliding along "path + straight ray", so the snake motion is one number s.
@@ -6,7 +6,7 @@
 import { DIRS, rayCells } from './board.js';
 import { ARROW, PAL } from './colors.js';
 
-const ACC = 95; // cells/s^2 (spec 2.2: v = 13 + 95 t, capped)
+const ACC = 95; // cells/s^2 (ref 2.2: v = 13 + 95 t, capped)
 const V0 = 13;
 const VMAX = 60;
 const BACK = 0.15; // bump retract, s
@@ -142,7 +142,7 @@ export class Renderer {
     this.oy += dy;
     this.clamp();
   }
-  // at least a quarter of the board stays on screen (spec 4.1)
+  // at least a quarter of the board stays on screen (ref 4.1)
   clamped(c) {
     const bw = this.level.W * c.pitch;
     const bh = this.level.H * c.pitch;
@@ -166,7 +166,7 @@ export class Renderer {
     return this.toScreen((c % W) + 0.5, Math.floor(c / W) + 0.5);
   }
 
-  // Nearest arrow to a screen point, within half a cell or 14 CSS px (spec unknown 15).
+  // Nearest arrow to a screen point, within half a cell or 14 CSS px (ref unknown 15).
   hit(sx, sy) {
     const { W, H } = this.level;
     const b = this.board;
@@ -345,7 +345,7 @@ export class Renderer {
       }
       let w = 0;
       if (wave >= 0) {
-        // a bright ring sweeping out from the centre (spec 3, win)
+        // a bright ring sweeping out from the centre (ref 3, win)
         const d = Math.hypot(x / this.level.W - 0.5, y / this.level.H - 0.5) / 0.71;
         w = Math.max(0, 1 - Math.abs(wave * 1.4 - d) * 5);
       }
@@ -505,7 +505,7 @@ export class Renderer {
     heads.closePath();
   }
 
-  // eraser: pink, rubbed out tail -> head with sparkles (spec 4.3)
+  // eraser: pink, rubbed out tail -> head with sparkles (ref 4.3)
   drawRubs(now) {
     const g = this.g;
     this.rubs = this.rubs.filter((r) => {
@@ -551,7 +551,7 @@ export class Renderer {
     }
   }
 
-  // "-1" star badge at the contact point: pop, hold, fade (spec 2.3)
+  // "-1" star badge at the contact point: pop, hold, fade (ref 2.3)
   drawBadges(now) {
     const g = this.g;
     this.badges = this.badges.filter((bd) => {

@@ -21,6 +21,7 @@
 //     count(colour)      -> units of colour still in the supply (conservation checks)
 //     total?()           -> all units still in the supply (enables winLocked)
 //     serialize(), load(data)
+//     check?(data)       -> throw if saved supply data can't be loaded (sim.load calls it first)
 //   }
 // The supply hands units to slots with sim.claim(colour, n, landAt).
 //
@@ -290,8 +291,24 @@ export class SlotSim {
     };
   }
 
-  // Restore a saved state into this (freshly constructed) sim.
+  // Restore a saved state into this (freshly constructed) sim. Throws before changing anything if the state
+  // doesn't fit this level (a damaged save); callers then restart the level.
   load(d) {
+    const b = this.board;
+    const ints = (a, n) => Array.isArray(a) && a.length === n && a.every(Number.isInteger);
+    const bad = (what) => {
+      throw new Error(`bad save: ${what}`);
+    };
+    if (!d || typeof d !== 'object' || !Number.isInteger(d.tick) || d.tick < 0) bad('tick');
+    if (!d.board || typeof d.board !== 'object') bad('board');
+    for (const k of ['kind', 'color', 'alt', 'pair', 'lock', 'key', 'dispAt', 'dispIdx', 'hid', 'ice']) {
+      if (k === 'ice' && d.board.ice === undefined) continue; // saves from before ice crates
+      if (!ints(d.board[k], b[k].length)) bad(`board.${k}`);
+    }
+    if (!Array.isArray(d.slots) || d.slots.length < 1 || d.slots.length > this.cfg.maxSlots) bad('slots');
+    for (const sl of d.slots) if (sl !== null && !(sl && Number.isInteger(sl.color) && sl.color >= 0 && Number.isFinite(sl.landed))) bad('slot');
+    if (!Number.isInteger(d.picks) || !Number.isInteger(d.completions) || !Number.isInteger(d.boostersUsed)) bad('counters');
+    this.supply.check?.(d.supply);
     this.tick = d.tick;
     this.time = d.tick * DT;
     this.supply.load(d.supply);
@@ -304,7 +321,6 @@ export class SlotSim {
       }
       return { color: sl.color, landed: sl.landed, land: [], doneAt: -1, at: -1e9 };
     });
-    const b = this.board;
     if (!d.board.ice) b.ice.fill(0); // saves from before ice crates
     for (const k of Object.keys(d.board)) b[k].set(d.board[k]);
     b.picks = d.picks;

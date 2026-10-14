@@ -85,7 +85,7 @@ export function cloneBoard(b) {
 let queue = new Int16Array(64);
 
 // reach[i] = 1 if the crate at i is in the top row or touches an empty cell connected
-// through empty cells to the top edge (spec 3.2). Locks and dispensers block paths.
+// through empty cells to the top edge (ref 3.2). Locks and dispensers block paths.
 export function computeReach(b, reach) {
   reach.fill(0);
   if (queue.length < b.n) queue = new Int16Array(b.n);

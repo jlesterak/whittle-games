@@ -1,5 +1,5 @@
 // Yacht rules: every box's scoring, the Joker cases (forced and free), the upper and Yacht
-// bonuses, and the Triple card. See docs/yacht-spec.md 1-2.
+// bonuses, and the Triple card. See docs/games/yacht.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {

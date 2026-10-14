@@ -1,4 +1,4 @@
-// Ludo: game module (docs/ludo-spec.md). Setup is plain responsive DOM like Yacht's; play sits in
+// Ludo: game module (docs/games/ludo.md). Setup is plain responsive DOM like Yacht's; play sits in
 // a fixed design space fitted by core/stage.js (portrait 1080 wide, or 1900x1000 with the board on
 // the right). Rules in rules.js, bots in bot.js, board drawing in board.js; seats, the pass card,
 // the die and bot pacing come from core/.
@@ -9,7 +9,8 @@ import { layout, hopPath, boardSvg, tokenSvg, puSvg, puIcon, TRACK_XY } from './
 import { KINDS, KIND_ORDER } from './powerups.js';
 import { makeRng } from '../../core/rng.js';
 import { rollDie, botDelay, BOT_SPEEDS } from '../../core/dice.js';
-import { needsPassAt, SEAT_COLOURS } from '../../core/seats.js';
+import { needsPassAt, cleanPlayers, SEAT_COLOURS } from '../../core/seats.js';
+import { isPlain } from '../../core/save.js';
 import { seatSetup, passScreen } from '../../core/seats-ui.js';
 import { makeDie, tumble } from '../../core/dice-view.js';
 import { fitStage } from '../../core/stage.js';
@@ -18,10 +19,16 @@ import { makeSounds } from './sounds.js';
 
 const ID = 'ludo';
 const BG = '#1d3a4f';
+const DEFAULT_PLAYERS = [
+  { name: 'Player 1', kind: 'human', level: 'medium' },
+  { name: 'Rusty', kind: 'bot', level: 'medium' },
+  { name: 'Pip', kind: 'bot', level: 'medium' },
+  { name: 'Dot', kind: 'bot', level: 'medium' },
+];
 const PORTRAIT = { W: 1080, H: 1660 };
 const WIDE = { W: 1900, H: 1000 };
 const WIDE_AT = 1.15; // aspect (w / h) above which the board goes on the right
-const PACE = { power: 750, roll: 500, think: 400, look: 450, lift: 300, hop: 110, next: 350, none: 950, auto: 380, capture: 600, place: 2600 }; // ms at Normal (spec 3)
+const PACE = { power: 750, roll: 500, think: 400, look: 450, lift: 300, hop: 110, next: 350, none: 950, auto: 380, capture: 600, place: 2600 }; // ms at Slow; Normal x0.45, Fast x0.2 (core/dice.js botDelay)
 const ROLL_MS = 450;
 const TAP_RADIUS = 1.25; // board squares: a tap this close to a movable token picks it
 const ICONS = { back: icons.back(), gear: icons.gear(BG), bot: icons.bot(BG), crown: icons.crown() };
@@ -52,18 +59,17 @@ export default {
     const { el, modal, toast } = ctx.ui;
     const S = ctx.settings;
     const sounds = makeSounds(ctx.audio, ctx.haptics);
+    const stored = ctx.store.get() || {};
     const save = {
-      setup: {
-        players: [
-          { name: 'Player 1', kind: 'human', level: 'medium' },
-          { name: 'Rusty', kind: 'bot', level: 'medium' },
-          { name: 'Pip', kind: 'bot', level: 'medium' },
-          { name: 'Dot', kind: 'bot', level: 'medium' },
-        ],
-      },
-      game: null,
-      ...(ctx.store.get() || {}),
+      ...stored,
+      setup: { players: cleanPlayers(stored.setup?.players, { min: 2, max: 4, fallback: DEFAULT_PLAYERS }) },
+      game: isPlain(stored.game) ? stored.game : null,
     };
+    // anything that was there but had to be dropped: keep a copy of the original before it is saved over
+    const dropped =
+      (stored.setup !== undefined && JSON.stringify(stored.setup?.players) !== JSON.stringify(save.setup.players)) ||
+      (stored.game !== undefined && stored.game !== null && save.game === null);
+    if (dropped) ctx.store.keep(stored);
     const rng = makeRng((Date.now() ^ (Math.random() * 2 ** 32)) >>> 0);
     const params = new URLSearchParams(location.search);
     const autoplay = params.has('autoplay'); // humans are played by the Hard bot, fast (testing)
@@ -252,21 +258,28 @@ export default {
       beginTurn();
     }
 
+    // A saved game that can't be played (a bug, or a hand-edited import) is kept under 'ludo.broken' and the
+    // setup screen comes back, rather than a crash.
     function resumeGame() {
       try {
         g = loadGame(save.game);
         if (!Array.isArray(g.humans)) g.humans = g.players.map((p) => p.kind === 'human'); // v1 saves
-        if (g.tokens.length !== g.players.length || g.corners.length !== g.players.length) throw new Error('bad save');
+        const ps = g.players;
+        const ok = ps.length >= 2 && ps.length <= 4 && cleanPlayers(ps, { min: 2, fallback: [] }).length === ps.length;
+        if (!ok || g.tokens.length !== ps.length || g.corners.length !== ps.length) throw new Error('bad save');
+        buildBoard();
+        showView('play');
+        if (g.phase === 'over') return showOver(false);
+        beginTurn();
       } catch (e) {
         console.warn('ludo: could not resume', e);
+        ctx.store.keep({ game: save.game });
         g = null;
         save.game = null;
-        return showView('setup');
+        persist();
+        toast('Could not resume the last game');
+        showView('setup');
       }
-      buildBoard();
-      showView('play');
-      if (g.phase === 'over') return showOver(false);
-      beginTurn();
     }
 
     function beginTurn() {

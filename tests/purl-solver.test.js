@@ -1,14 +1,12 @@
-// Purl solver and generator: hand-made levels, the level 254 fixture, board outlines,
-// and "every generated level is winnable".
+// Purl solver and generator: hand-made levels, a hard generated level with hidden bobbins and dispensers checked
+// pick by pick, board outlines, and "every generated level is winnable".
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { solve as solveG, replay as replayG } from '../engines/slotsort/solver.js';
 import { generateLevel, GAME, knitMask, createSim } from '../games/purl/rules.js';
 import { createBoard, applyPick, runDispensers, computeReach, canPick, revealReachable, DISP } from '../engines/slotsort/board.js';
 import { makeRng } from '../core/rng.js';
-import { C } from '../games/purl/colors.js';
 import { knitLevel } from './fixtures/knit.js';
-import { board254, log254, level254 } from './fixtures/level254.js';
 
 const solve = (lvl, o) => solveG(lvl, GAME, o);
 const replay = (lvl, picks, o) => replayG(lvl, picks, GAME, o);
@@ -27,33 +25,39 @@ test('solver finds the one winning order, and proves a clogged level unwinnable'
   assert.equal(r.exhausted, false, 'proven, not given up');
 });
 
-test('level 254: the logged picks are legal, take the logged colours, and match the recording', () => {
-  const b = createBoard(board254);
+// Level 45 is hard: 27 bobbins, 11 hidden, two facing dispensers, 4 columns. The generator's intended order must be
+// legal on the board alone, every "?" must be shown the moment it can be picked (not sooner, not later) and before it
+// is picked, and the empty domes must stay.
+test('level 45 (hidden bobbins + dispensers): the intended order is legal, reveals each "?" first, and wins', () => {
+  const lvl = generateLevel(45);
+  const b = createBoard(lvl.board);
+  const hidden = lvl.board.cells.filter((c) => c && c.hidden).length;
+  assert.ok(lvl.hard && b.disps.length >= 2 && hidden >= 5 && lvl.columns.length === 4, 'the mix this test is about');
   runDispensers(b, null);
   const reach = new Uint8Array(b.n);
   computeReach(b, reach);
   assert.deepEqual(revealReachable(b, reach), [], 'no "?" is pickable at the start');
-  for (const [k, [cell, colour]] of log254.entries()) {
+  let revealed = 0;
+  for (const [k, cell] of lvl.meta.solution.entries()) {
     computeReach(b, reach);
     assert.ok(canPick(b, cell, reach), `pick ${k + 1} (cell ${cell}) should be pickable`);
-    assert.equal(applyPick(b, cell, null), colour, `pick ${k + 1} colour`);
+    assert.equal(b.hid[cell], 0, `pick ${k + 1}: a "?" is shown before it is picked`);
+    applyPick(b, cell, null);
     computeReach(b, reach);
     const shown = revealReachable(b, reach);
-    if (k === 17) assert.deepEqual(shown, [28], 'r5c5 reveals as r5c6 is picked');
-    else assert.deepEqual(shown, [], `pick ${k + 1} reveals nothing`);
+    for (const i of shown) assert.ok(reach[i], `pick ${k + 1}: the "?" at ${i} was shown before it could be picked`);
+    for (let i = 0; i < b.n; i++) if (b.hid[i]) assert.equal(reach[i], 0, `pick ${k + 1}: the pickable "?" at ${i} stays hidden`);
+    revealed += shown.length;
   }
-  assert.equal(b.color[28], C.yellow);
-  for (const d of [0, 1]) assert.equal(b.dispIdx[d], 3, 'both dispensers exhausted');
-  assert.equal(b.kind[13], DISP);
-  assert.equal(b.kind[22], DISP, 'empty hoods stay');
-  assert.ok(reach[35], 'r6c6 stood up');
-});
-
-test('level 254: the solver wins it with 7 slots and the solution replays', () => {
-  const lvl = level254();
+  assert.equal(revealed, hidden, 'every "?" was revealed on the way');
+  b.disps.forEach((d, i) => {
+    assert.equal(b.dispIdx[i], d.queue.length, 'dispensers exhausted');
+    assert.equal(b.kind[d.cell], DISP, 'empty domes stay');
+  });
+  assert.ok(replay(lvl, lvl.meta.solution, { slots: 7 }).ok, 'intended order wins in the sim');
   const s = solve(lvl, { slots: 7, maxNodes: 200000 });
   assert.ok(s.ok, 'solver');
-  assert.ok(replay(lvl, s.picks, { slots: 7 }).ok, 'replay');
+  assert.ok(replay(lvl, s.picks, { slots: 7 }).ok, 'solver order');
 });
 
 test('board outlines: exact cell count, every cell reachable from the top row', () => {

@@ -23,6 +23,8 @@ function closeCurrent() {
 }
 
 function route() {
+  // another tab took an update: this page's next lazy import would come from the new version, so start over
+  if (update.stale) return location.reload();
   const id = location.hash.replace(/^#\/?/, '');
   const meta = games.find((g) => g.id === id);
   if (meta) openGame(meta);
@@ -32,6 +34,7 @@ function route() {
 function showShelf() {
   closeCurrent();
   document.body.dataset.view = 'shelf';
+  checkForUpdate();
   app.replaceChildren(
     el(
       'div',
@@ -42,6 +45,13 @@ function showShelf() {
         el('h1', {}, 'Whittle'),
         el('button', { class: 'icon-btn', 'aria-label': 'Settings', onclick: () => openSettings() }, '⚙'),
       ),
+      update.waiting &&
+        el(
+          'div',
+          { class: 'update-bar', role: 'status' },
+          el('span', {}, 'Update ready'),
+          el('button', { class: 'btn btn-primary', onclick: applyUpdate }, 'Reload'),
+        ),
       el(
         'div',
         { class: 'cards' },
@@ -75,6 +85,9 @@ async function openGame(meta) {
   }
   if (token !== opening) return; // navigated away while loading
   const game = mod.default;
+  // what the save held before this start, so "Start fresh" can keep the original even if mount() wrote first
+  const before = save.store(meta.id).get();
+  const snapshot = before === null ? undefined : structuredClone(before);
   const ctx = {
     root,
     meta,
@@ -88,7 +101,43 @@ async function openGame(meta) {
     },
     openSettings: (extra) => openSettings({ meta, game, extra }),
   };
-  current = { meta, game, instance: game.mount(root, ctx) };
+  try {
+    current = { meta, game, instance: game.mount(root, ctx) };
+  } catch (e) {
+    console.error(e);
+    current = { meta, game, instance: null };
+    showLoadFail(root, meta, snapshot);
+  }
+}
+
+// A game that throws while starting is most likely tripping over its save. Offer a way out that keeps the save:
+// export it, or start the game fresh with the old blob set aside as '<id>.broken' (it stays in exports).
+function showLoadFail(root, meta, snapshot) {
+  root.replaceChildren(
+    el(
+      'div',
+      { class: 'load-fail' },
+      el('h2', {}, `${meta.title} could not start`),
+      el('p', {}, "This game's save could not be loaded. Export a copy to keep it, or start the game fresh."),
+      el(
+        'div',
+        { class: 'load-fail-actions' },
+        el('button', { class: 'btn', onclick: () => save.exportSave() }, 'Export save'),
+        el(
+          'button',
+          {
+            class: 'btn btn-primary',
+            onclick: () => {
+              save.quarantine(meta.id, snapshot);
+              openGame(meta);
+            },
+          },
+          'Start fresh',
+        ),
+        el('button', { class: 'btn', onclick: () => (location.hash = '') }, 'Back to shelf'),
+      ),
+    ),
+  );
 }
 
 // The settings panel: global toggles, the open game's own settings, save export/import.
@@ -107,15 +156,31 @@ function openSettings({ meta, game, extra } = {}) {
     rows.push(choiceRow(s.label, settings.get(key, s.default), s.options, (v) => settings.set(key, v)));
   }
   const file = el('input', { type: 'file', accept: 'application/json,.json', hidden: true });
-  file.addEventListener('change', async () => {
-    if (!file.files[0]) return;
-    try {
-      await save.importSave(file.files[0]);
-      toast('Save imported');
-      setTimeout(() => location.reload(), 600);
-    } catch (e) {
-      toast(e.message || 'Import failed');
-    }
+  file.addEventListener('change', () => {
+    const f = file.files[0];
+    if (!f) return;
+    file.value = ''; // the same file can be picked again
+    modal({
+      title: 'Replace your saves?',
+      body: [el('p', {}, 'Every game will use the progress in this file. A copy of your current saves is kept, and the next Export includes it.')],
+      actions: [
+        { label: 'Cancel' },
+        {
+          label: 'Replace',
+          primary: true,
+          onClick: async (close) => {
+            close();
+            try {
+              await save.importSave(f);
+              toast('Save imported');
+              setTimeout(() => location.reload(), 600);
+            } catch (e) {
+              toast(e.message || 'Import failed');
+            }
+          },
+        },
+      ],
+    });
   });
   rows.push(
     el(
@@ -138,6 +203,30 @@ function openSettings({ meta, game, extra } = {}) {
   modal({ title: 'Settings', body: rows, actions, className: 'settings' });
 }
 
+// ---- updates ----
+// A new version installs in the background and waits (sw.js). The shelf offers it; it never interrupts a game.
+// Reload asks the waiting worker to take over, and the page reloads once it has.
+const update = { reg: null, waiting: null, applying: false, stale: false, checked: 0 };
+
+function updateFound(worker) {
+  update.waiting = worker;
+  if (document.body.dataset.view === 'shelf') showShelf();
+}
+
+function applyUpdate() {
+  if (!update.waiting) return;
+  update.applying = true;
+  update.waiting.postMessage('skip-waiting');
+}
+
+// The installed app can stay open for days: look for a new version each time the shelf shows (at most every
+// 10 minutes). Offline this fails quietly.
+function checkForUpdate() {
+  if (!update.reg || Date.now() - update.checked < 600000) return;
+  update.checked = Date.now();
+  update.reg.update().catch(() => {});
+}
+
 // A body class games can style against (no animations, no lifts) when reduced motion is on.
 const applyMotion = () => document.body.classList.toggle('reduced-motion', !!settings.get('reducedMotion'));
 settings.onChange((key) => key === 'reducedMotion' && applyMotion());
@@ -149,5 +238,30 @@ window.addEventListener('hashchange', route);
 route();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW registration failed', e));
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (update.applying) return location.reload();
+    // Another tab took the update. A game keeps running (its modules are all loaded); the page reloads as soon
+    // as it routes again (route() checks stale), or right now on the shelf.
+    update.stale = true;
+    if (document.body.dataset.view === 'shelf') location.reload();
+  });
+  navigator.serviceWorker
+    .register('./sw.js')
+    .then((reg) => {
+      update.reg = reg;
+      update.checked = Date.now(); // registering just checked
+      // An update that finished installing earlier and is still waiting (a controller means it isn't the first
+      // install). Starting on the shelf, take it now: nothing is lost by a reload this early.
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        updateFound(reg.waiting);
+        if (document.body.dataset.view === 'shelf') applyUpdate();
+      }
+      const watch = (w) =>
+        w?.addEventListener('statechange', () => {
+          if (w.state === 'installed' && navigator.serviceWorker.controller) updateFound(w);
+        });
+      watch(reg.installing); // an update already under way
+      reg.addEventListener('updatefound', () => watch(reg.installing));
+    })
+    .catch((e) => console.warn('SW registration failed', e));
 }

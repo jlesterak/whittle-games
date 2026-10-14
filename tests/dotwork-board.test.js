@@ -1,29 +1,36 @@
-// Dotwork board model: the level 208 fixture, the tap rule (escape / bump), stars, the
+// Dotwork board model: a big generated board, the tap rule (escape / bump), stars, the
 // eraser, continue, win, and save/restore.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBoard, fire, erase, addStar, blocker, freeArrows, peel, serialize, loadBoard, rayCells, parseArrows } from '../games/dotwork/board.js';
-import { level208 } from '../games/dotwork/level208.js';
+import { generateLevel } from '../games/dotwork/generator.js';
 
-test('level 208 fixture: 163 arrows on 1564 cells, no overlap, no ray through its own body', () => {
-  const lvl = level208();
-  assert.equal(lvl.arrows.length, 163);
+const big = () => generateLevel(80); // a hard 34x43 board, deep peel
+
+test('a big board: no overlap, every cell an arrow covers counted once, no ray through its own body', () => {
+  const lvl = big();
   const b = createBoard(lvl); // throws on overlap
-  assert.equal(b.occ.filter((o) => o >= 0).length, 1564);
+  assert.equal(b.occ.filter((o) => o >= 0).length, lvl.arrows.reduce((s, a) => s + a.cells.length, 0));
   lvl.arrows.forEach((a, id) => {
     assert.ok(a.cells.length >= 2);
     for (const c of rayCells(lvl.W, lvl.H, a.cells)) assert.notEqual(b.occ[c], id, `arrow ${id} points through itself`);
   });
 });
 
-test('level 208 fixture: greedy peel clears it in 31 layers, 17 free at the start', () => {
-  const p = peel(level208());
+test('a big board: greedy peel clears it, each layer every arrow free at that point, as the generator recorded', () => {
+  const lvl = big();
+  const p = peel(lvl);
   assert.ok(p.ok);
-  assert.equal(p.layers.length, 31);
-  assert.deepEqual(
-    p.layers.map((l) => l.length),
-    [17, 15, 15, 13, 10, 8, 7, 5, 4, 4, 4, 4, 5, 5, 5, 2, 2, 3, 2, 4, 4, 1, 3, 2, 7, 4, 3, 1, 2, 1, 1],
-  );
+  assert.equal(p.layers.length, lvl.meta.layers);
+  // checked against the tap rule, not peel itself: each layer is exactly the arrows free then, and they all escape
+  const b = createBoard(lvl);
+  p.layers.forEach((layer, k) => {
+    assert.deepEqual(layer, freeArrows(b), `layer ${k + 1} is every arrow free at that point`);
+    for (const id of layer) assert.ok(fire(b, id)?.ok, `layer ${k + 1}: arrow ${id} escapes`);
+  });
+  assert.equal(b.status, 'won');
+  assert.ok(p.layers.length >= 20, `deep enough to exercise the solver (${p.layers.length} layers)`);
+  assert.equal(p.layers.flat().length, lvl.arrows.length, 'every arrow leaves exactly once');
 });
 
 // A 5x3 board (> < ^ v are heads):
@@ -81,7 +88,7 @@ test('three bumps lose; +1 star continues with the board kept; clearing every ar
 });
 
 test('save/restore round trip keeps removed, white arrows and stars', () => {
-  const lvl = level208();
+  const lvl = big();
   const b = createBoard(lvl);
   const [l0] = peel(lvl).layers;
   for (const id of l0.slice(0, 5)) fire(b, id);

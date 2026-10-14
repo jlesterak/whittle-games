@@ -1,4 +1,4 @@
-// Beadloom supply: a rotating ring of bead rows fed by two feeders (spec 1, 8.1).
+// Beadloom supply: a rotating ring of bead rows fed by two feeders (ref 1, 8.1).
 //
 // The ring is a fixed circular array of row cells (colour or -1 for empty) that rotates one
 // position per row of travel; it never compacts. Positions along the travel direction: spout at
@@ -191,6 +191,32 @@ export class RingSupply {
     };
   }
 
+  // A saved supply that doesn't fit this level throws (SlotSim.load calls this before changing anything).
+  check(d) {
+    const ok =
+      d &&
+      Array.isArray(d.ring) &&
+      d.ring.length === this.N &&
+      d.ring.every((c) => Number.isInteger(c) && c >= -1 && c < this.ringCount.length) &&
+      Number.isInteger(d.offset) &&
+      d.offset >= 0 &&
+      d.offset < this.N &&
+      Number.isFinite(d.phase) &&
+      Array.isArray(d.feeders) &&
+      d.feeders.length === 2 &&
+      d.feeders.every(
+        (f) =>
+          f &&
+          Array.isArray(f.colors) &&
+          Array.isArray(f.seg) &&
+          Array.isArray(f.hidden) &&
+          f.seg.length === f.colors.length &&
+          f.colors.every((c) => Number.isInteger(c) && c >= 0 && c < this.ringCount.length) &&
+          f.seg.every((k) => Number.isInteger(k) && k >= 0 && k < f.hidden.length),
+      );
+    if (!ok) throw new Error('bad save: supply');
+  }
+
   load(d) {
     this.ring = Int8Array.from(d.ring);
     this.recount();
@@ -200,7 +226,7 @@ export class RingSupply {
   }
 }
 
-// Abstract supply model for the solver (spec 8.2): only multisets matter, in whole segments.
+// Abstract supply model for the solver (ref 8.2): only multisets matter, in whole segments.
 // State: segment counts per colour in the ring, empty segment slots, feeder pointers.
 export const ringModel = {
   init(level, ncolors = 32) {
@@ -252,7 +278,7 @@ export const ringModel = {
   },
 };
 
-// Turn an intended pick order into ring + feeders (spec 8.4 steps 4-5): each crate gives two
+// Turn an intended pick order into ring + feeders (ref 8.4 steps 4-5): each crate gives two
 // segments keyed near its place in the order, jittered by J; the first ringSegs form the ring
 // (shuffled), the rest go to the right feeder (drains first), then the left.
 export function streamFromOrder(order, { jitter, ringSegs, hidden }, rng) {

@@ -16,6 +16,25 @@ export const BOT_LEVELS = [
   ['hard', 'Hard'],
 ];
 
+const BOT_NAMES = ['Rusty', 'Pip', 'Dot', 'Bolt'];
+export const defaultName = (kind, i) => (kind === 'bot' ? BOT_NAMES[i % 4] : `Player ${i + 1}`);
+
+// Seats read back from a save, made safe: each a { name, kind, level } with a known kind and level and a short
+// name; between min and max of them, or the fallback list when there are too few to play.
+export function cleanPlayers(players, { min = 1, max = 4, fallback }) {
+  if (!Array.isArray(players)) return fallback.map((p) => ({ ...p }));
+  const levels = BOT_LEVELS.map(([v]) => v);
+  const out = players
+    .filter((p) => p && typeof p === 'object' && (p.kind === 'human' || p.kind === 'bot'))
+    .slice(0, max)
+    .map((p, i) => ({
+      name: typeof p.name === 'string' && p.name.trim() ? p.name.trim().slice(0, 12) : defaultName(p.kind, i),
+      kind: p.kind,
+      level: levels.includes(p.level) ? p.level : 'medium',
+    }));
+  return out.length >= min ? out : fallback.map((p) => ({ ...p }));
+}
+
 export function createSeats(players, { first = 0 } = {}) {
   const seats = {
     players: players.map((p, i) => ({ seat: i, out: false, score: 0, ...p })),

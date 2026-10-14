@@ -1,32 +1,66 @@
 # Whittle TODO
 
+Item IDs refer to PLAN.md. Agents: update this file in the same commit as the work (see CLAUDE.md).
+
+## Inbox
+Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
+
 ## [IN PROGRESS]
 
 ## [PENDING]
-- Beadloom: 6-column boards (recording C) need a per-level column layout in render.js; boards stay 5 wide for now
-- Beadloom: record a fill-booster use and a lift on a locked crate (still unrecorded, spec Unknowns 3, 4)
-- Beadloom still clips in spots on the phone (Jake, 2026-10-09: "still a little cut off in spots"); get screenshots of where,
-  then fix in core/stage.js or the Beadloom layout (the 10-08 clipping fix covered Purl's frame and the arms).
-- Jake: play-test feel on the phone (sound mix, haptics strength, super-slow speed, difficulty curve) after the clipping fix
+- P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
+- P6h [HUMAN] Check clipping on the phone
+- P7 Frame-rate budget
+- P8 Accessibility and input basics
+- P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
+- P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
+- E1 Progress on the shelf
+- E2 Daily puzzle
+- E3 Farkle
+- E4 Backgammon
+- E5 Cards core and Klondike
+- X1 Install guide and a live-site check
 
 ## [COMPLETED]
-- Beadloom track layout (Jake, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
+- 2026-10-14: D2s generated boards replace the three rebuilt from recordings (level 208 is ordinary, Dotwork
+  LEVEL_GEN 2); the tests now check reveal timing, real swaps, dispenser order and peel layers (mutation-checked)
+- 2026-10-14: P5 Beadloom feeder joins are rounded fillets on every wall layer, shadow drawn once at 25 %; track
+  geometry test; static rebuild back to 3-6 ms on level 40 (the shadow layer is kept between rebuilds)
+- 2026-10-14: owner decisions: D1 the Unlicense (public domain), D2 swap the rebuilt boards (D2s), D3 Pages on
+  (serves master), D5 Yacht's free Joker stays a house rule
+- 2026-10-14: P3 save safety: repaired record, cleanSave/cleanPlayers, refused damaged resumes, kept copies
+  (<id>.broken, three deep), could-not-start card, import confirm + backup; smoke --saves 57 cases + fallback
+- 2026-10-14: P4 6-column Beadloom boards: already worked (old TODO item stale); checked headless, layout test added
+- 2026-10-14: P2 whole updates: VERSION is a content hash, a new worker waits for the shelf's Update ready /
+  Reload, other tabs move over when they leave their game; smoke --sw covers offline, mid-game and two tabs
+- 2026-10-14: R4 public game docs: docs/games/{beadloom,purl,dotwork,yacht,ludo}.md from the code, numbers checked
+  by three reviews; comments cite public docs or `ref` notes; Yacht and Ludo figures re-measured
+- 2026-10-14: P1 public-ready pass: no personal names in tracked files, no secrets or private hosts, D2 lists the
+  boards rebuilt from recordings and what else was measured from them
+- 2026-10-14: R3 headless smoke check: tools/cdp.mjs + tools/smoke.mjs (no npm packages), 18 pages in ~35 s, in CI
+  with screenshots kept; vibrate waits for the first tap; Dotwork hides its parked bars while erasing
+- 2026-10-14: R2 CI: node --test (now also imports every app module) and the precache check on PRs and master
+- 2026-10-14: R1 agent docs and plan: CLAUDE.md (rules adopted from Skyband), PLAN.md, TODO.md by item ID,
+  README split into README + docs/ARCHITECTURE.md, docs/DECISIONS.md, docs/CREDITS.md
+
+## History (before PLAN.md, newest first)
+- Beadloom track layout (owner, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
   never shrink below a round hole (dropped the scaled-down and pinched hourglass shapes), feeder arms sit at the
   screen sides and merge at an angle instead of running alongside the ring, waiting rows stop at the ring's edge and
   draw over it, HUD moved up into the headroom and the speed toggle to the left so neither covers an arm.
   Checked headless at 412x780 / 412x915 on levels 1, 5-11, 40, 55 (rings of 80-130 rows)
-- Jake play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
-- Ludo powerups board (Jake, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
+- The owner play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
+- Ludo powerups board (owner, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
   effects (jump +3 / +6, swap, shield, roll again, back to start, back, freeze), used squares respawn, icon layer,
-  legend (?), banners and sounds, Medium/Hard value the squares. Spec 2.1; unit-tested; checked headless at
-  360x740 and 1440x900. Jake: play-test it (effect mix, whether freeze/back to start feel too harsh)
-- Ludo plays on after the first winner (Jake, 2026-10-09): finished players take places and are skipped; ends at one
+  legend (?), banners and sounds, Medium/Hard value the squares. Ludo doc 2.1; unit-tested; checked headless at
+  360x740 and 1440x900. Owner: play-test it (effect mix, whether freeze/back to start feel too harsh)
+- Ludo plays on after the first winner (owner, 2026-10-09): finished players take places and are skipped; ends at one
   left, or ranks a bots-only remainder by progress. Unit-tested (63 tests); a full 2-human game not yet checked live
-- Yacht Play again starts the next game with the current house rules, like Ludo (Jake, 2026-10-09);
+- Yacht Play again starts the next game with the current house rules, like Ludo (owner, 2026-10-09);
   mid-game rule changes still wait for the next game
 - Ludo auto-roll (setting, on by default): a human only acts when a token must be chosen. Bot pace one step
-  faster in every dice game: Normal = the old Fast (x0.45), Fast = x0.2, Slow = the old Normal (Jake, 2026-10-09)
-- Dropped the Dice Tray placeholder (Jake, 2026-10-09): Yacht and Ludo now exercise the dice helpers
+  faster in every dice game: Normal = the old Fast (x0.45), Fast = x0.2, Slow = the old Normal (owner, 2026-10-09)
+- Dropped the Dice Tray placeholder (owner, 2026-10-09): Yacht and Ludo now exercise the dice helpers
 - Ludo polish (milestone 4): layouts checked headless at 384x693, 360x740, 412x915, 768x1024, 1440x900 and
   915x412 (setup, busy 4-seat game with stacks and colourblind shapes, pass card, game over); fixes: die face
   under the button reset, dark ring on movable tokens, tokens kept under the game-over card, tall-phone spacer;
@@ -44,7 +78,7 @@
 - Ludo rules engine (milestone 1): `games/ludo/rules.js` (relative token positions, 52-square track, opposite
   seating for 2, legal moves with captures of whole stacks, safe start/star squares, blockades, exact or overshoot
   finish, extra rolls on 6 / capture / home, three 6s forfeit, win, standings); tests for each rule and toggle
-- Ludo spec: classic rules (6 to leave, safe start + star squares, exact finish, extra roll on 6, three 6s
+- Ludo design doc: classic rules (6 to leave, safe start + star squares, exact finish, extra roll on 6, three 6s
   forfeit), house toggles, 2-4 seats with opposite seating for 2, easy/medium/hard bots, screens, milestones
 - Yacht polish (milestone 4): layouts checked headless at 384x693, 360x740, 412x915, 768x1024, 1440x900
   and 915x412 (setup, 4-seat game, Triple, pass card, game over, high scores): column widths, 2x2 standings,
@@ -60,7 +94,7 @@
   values (217), Easy = rule of thumb (182); tests for legality under every rule mix and Joker spot
 - Yacht rules engine (milestone 1): `games/yacht/rules.js` (13 boxes, upper bonus 35 at 63, Yacht bonus
   +100, forced and free Joker, Triple card with per-column Joker, totals); tests for every box and Joker case
-- Yacht spec: classic Hasbro rules with forced Joker, house toggles (free Joker, no bonus, Triple card),
+- Yacht design notes: classic rules with forced Joker, house toggles (free Joker, no bonus, Triple card),
   1-4 seats of humans and easy/medium/hard bots, pass screen, solo top 10, screens and milestones
 - Dotwork polish (milestone 4): cached still layer (arrows at rest, settled dots, rays) redrawn only on
   change or camera move, arrows batched per colour: level 208 at 4x CPU throttle went from ~14 to ~45 fps
@@ -83,7 +117,7 @@
 - Dotwork model (milestone 1): `games/dotwork/board.js` (ray-cast tap rule, bump = white + -1 star,
   lanes free at launch, eraser, +1 star continue, save/restore, greedy peel solver), level 208 reconstructed
   from the recording as `level208.js` (163 arrows, 31 peel layers, 17 free at start) as the fixture
-- Layout fix after Jake's phone test (Firefox Android, S22 Ultra): both games fit fully at any aspect.
+- Layout fix after the owner's phone test (Firefox Android, S22 Ultra): both games fit fully at any aspect.
   Shared `core/stage.js` contain-fits the design plus headroom above y=0 inside the safe area
   (`.game-root` now honours env(safe-area-inset-*)); Beadloom feeder arms end in rounded caps inside
   the headroom and small boards sit centred; Purl's frame gets a top rail, its tip moved off the
@@ -114,7 +148,7 @@
   bobbins, persistent facing dispensers, Continue = 8th slot). Engine: `claimDelay` (no thread until
   the bobbin has landed) and time-ordered landings for parallel feeds. Tests: conservation, claim
   rules, dispensers, lose, win, boosters, save/restore
-- Beadloom ice crates and side-facing dispensers (spec C.2): engine `ice` tile (thaws as units are
+- Beadloom ice crates and side-facing dispensers (ref C.2): engine `ice` tile (thaws as units are
   collected; solver, generator and stuck-with-free-slot lose all aware), Beadloom from level ~22, ice cube
   with a bead counter and a shard burst; edge dispensers facing in with a side stripe. In-progress saves
   from the old generator restart the level (LEVEL_GEN)
@@ -122,7 +156,7 @@
   via a +1 booster or coins, up to 6 slots, X -> Level failed / Try again), Move Box tooltip with every
   liftable crate raised, idle hint after 9 s over usable boosters only, speed mode chip, Hard / Very Hard
   tag with skull on spike levels; +1 booster capped at 5 slots
-- Beadloom spec: second recording (level 2803, a loss) analysed; lose flow, Move Box, +1 slot, base speed,
+- Beadloom reference notes: second recording (level 2803, a loss) analysed; lose flow, Move Box, +1 slot, base speed,
   idle hint, ice crates and side dispensers marked [M]; refs 15-17
 - Beadloom: 4x fast-forward once the win is unavoidable (every crate placed and every unit left in
   the supply has a waiting crate with room: `sim.winLocked()`), with a "»" badge; test guards it
@@ -150,12 +184,3 @@
 - Core skeleton (milestone 1): shelf, game-module interface, settings, save + export/import,
   WebAudio + haptics helpers, rng/dice/seats helpers, PWA manifest + icons, service worker
   with a generated precache list, Dice Tray placeholder game
-
-## [PENDING] Beadloom feeder-ring junction notch
-The feeder tube and ring are drawn as separate stroked centrelines, so where the straight tube
-wall meets the curved ring wall there's a small V-notch. The curve-following extension
-(render.js setLevel `feederExt`, used in the static `stroke()`) hides the channel seam but not
-this outer-wall corner. Clean fix: render the whole track (ring + both feeders) as ONE unioned
-FILLED outline instead of overlapping strokes — offset each centreline by ±(CHANNEL/2+WALL) for
-the wall band and ±CHANNEL/2 for the dark channel (resample() already carries unit normals), then
-fill each as a single Path2D (nonzero winding unions overlaps seamlessly). Draw beads on top.

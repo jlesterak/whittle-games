@@ -1,16 +1,16 @@
-// Purl supply: the knitted picture, C independent column stacks of blocks (spec 1, 8.1).
+// Purl supply: the knitted picture, C independent column stacks of blocks (ref 1, 8.1).
 //
 // Each column is a FIFO of block colours, bottom first; only the bottom block can be pulled.
 // A free column whose bottom matches a slotted bobbin that still needs a whole block starts a
 // thread: the block leaves the stack at once (its 6 stitch rows are reserved in that slot with
 // sim.claim and land one by one over BLOCK_TIME), and the column is busy until the last row
 // lands. One column feeds one bobbin at a time; a bobbin may draw from several columns at once.
-// Claims are whole blocks capped at the bobbin's need, leftmost columns first (the spec's
+// Claims are whole blocks capped at the bobbin's need, leftmost columns first (the ref notes'
 // "simple" model, 8.2): the real game drains every matching column evenly and can leave
 // part-blocks behind, which only matters when more columns match than a bobbin needs.
 //
 // Lanes 0..C-1 are the columns; lanes C and C+1 are the balloon hooks (left, right), each
-// holding at most one parked block that acts like an extra column bottom (spec 5.2).
+// holding at most one parked block that acts like an extra column bottom (ref 5.2).
 //
 // Level supply format: columns: [[colour, ...bottom first], ...].
 // Events: thread (a block starts unravelling), unravelled, snip (scissors), park (balloon).
@@ -20,7 +20,7 @@ export const BOBBIN_BLOCKS = 3;
 export const BOBBIN_ROWS = BLOCK_ROWS * BOBBIN_BLOCKS;
 export const BLOCK_TIME = 1.3; // seconds per block per thread (~0.77 blocks/s)
 export const HOOKS = 2;
-// No speed toggle in Purl (spec 5.2); 'fast' is for the solver's replay and the win fast-forward.
+// No speed toggle in Purl (ref 5.2); 'fast' is for the solver's replay and the win fast-forward.
 export const SPEEDS = {
   normal: { timers: 1, rate: 1 },
   fast: { timers: 0.25, rate: 4 },
@@ -117,7 +117,7 @@ export class ColumnSupply {
 
   // Balloon: park the bottom blocks of up to 2 idle columns on the free hooks. Prefers columns
   // whose bottom no slotted bobbin wants and whose next block one does, then any idle column
-  // with an unwanted bottom (the original's choice is unknown, spec 9 #4). Returns the lanes.
+  // with an unwanted bottom (the original's choice is unknown, ref 9 #4). Returns the lanes.
   balloon(colours) {
     const free = [];
     for (let l = this.C; l < this.lanes.length; l++) if (!this.lanes[l].stack.length && !this.lanes[l].run) free.push(l);
@@ -164,13 +164,24 @@ export class ColumnSupply {
     return { lanes: this.lanes.map((l) => l.stack.slice()) };
   }
 
+  // A saved supply that doesn't fit this level throws (SlotSim.load calls this before changing anything).
+  check(d) {
+    const ok =
+      d &&
+      Array.isArray(d.lanes) &&
+      d.lanes.length >= this.C &&
+      d.lanes.length <= this.C + HOOKS &&
+      d.lanes.every((s) => Array.isArray(s) && s.every((c) => Number.isInteger(c) && c >= 0));
+    if (!ok) throw new Error('bad save: supply');
+  }
+
   load(d) {
     this.lanes = d.lanes.map((stack) => ({ stack: stack.slice(), run: null }));
     while (this.lanes.length < this.C + HOOKS) this.lanes.push({ stack: [], run: null });
   }
 }
 
-// Abstract supply model for the solver (spec 8.2): whole blocks, column pointers only.
+// Abstract supply model for the solver (ref 8.2): whole blocks, column pointers only.
 export const columnModel = {
   init: (level) => ({ cols: level.columns, ptr: new Int16Array(level.columns.length) }),
   clone: (s) => ({ cols: s.cols, ptr: s.ptr.slice() }),
@@ -209,7 +220,7 @@ export const columnModel = {
   },
 };
 
-// Turn an intended pick order into column stacks (spec 8.4 step 4): each bobbin gives 3 blocks
+// Turn an intended pick order into column stacks (ref 8.4 step 4): each bobbin gives 3 blocks
 // keyed near its place in the order (jittered by J); blocks are dealt bottom-up in key order,
 // mostly to the lowest column (random ties), sometimes to any column within one block of it, so
 // heights end up a little ragged.

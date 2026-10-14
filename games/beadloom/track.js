@@ -271,6 +271,139 @@ function feederPath(ring, i, side, ax, midY) {
   return resample(fwd, false);
 }
 
+// Where a feeder band leaves the ring band, the two bands' edges meet in a sharp concave V. junctionCorners(t, d)
+// finds the four Vs (two per feeder, in feeder then side order; null where the edges run in line) for bands of
+// half-width d: the corner P where the feeder's edge leaves the ring's outer edge, the angle theta between the two
+// edges there and the bisector m pointing out into the V. Cached on the track: the renderer asks on every resize.
+export function junctionCorners(t, d) {
+  t.corners ??= new Map();
+  if (!t.corners.has(d)) t.corners.set(d, t.feeders.flatMap((f) => [1, -1].map((side) => corner(t.ring, f, side, d))));
+  return t.corners.get(d);
+}
+
+const unit = (x, y) => {
+  const l = Math.hypot(x, y) || 1;
+  return [x / l, y / l];
+};
+
+// Nearest point on a sampled path to (x, y), refined onto the neighbouring segments.
+function nearestOn(path, closed, x, y) {
+  let bi = 0;
+  let bd = Infinity;
+  for (let i = 0; i < path.count; i++) {
+    const dd = (path.xs[i] - x) ** 2 + (path.ys[i] - y) ** 2;
+    if (dd < bd) (bd = dd), (bi = i);
+  }
+  let best = [path.xs[bi], path.ys[bi]];
+  for (const o of [-1, 1]) {
+    let j = bi + o;
+    if (closed) j = (j + path.count) % path.count;
+    else if (j < 0 || j >= path.count) continue;
+    const ax = path.xs[bi];
+    const ay = path.ys[bi];
+    const vx = path.xs[j] - ax;
+    const vy = path.ys[j] - ay;
+    const k = Math.max(0, Math.min(1, ((x - ax) * vx + (y - ay) * vy) / (vx * vx + vy * vy || 1)));
+    const q = [ax + vx * k, ay + vy * k];
+    if ((q[0] - x) ** 2 + (q[1] - y) ** 2 < (best[0] - x) ** 2 + (best[1] - y) ** 2) best = q;
+  }
+  return best;
+}
+
+function corner(ring, f, side, d) {
+  const edge = (j) => [f.xs[j] + side * f.nx[j] * d, f.ys[j] + side * f.ny[j] * d];
+  const dist = ([x, y]) => {
+    const q = nearestOn(ring, true, x, y);
+    return Math.hypot(q[0] - x, q[1] - y);
+  };
+  let p = edge(0);
+  let pd = dist(p);
+  for (let j = 1; j < f.count; j++) {
+    const q = edge(j);
+    const qd = dist(q);
+    if (qd < d) {
+      [p, pd] = [q, qd];
+      continue;
+    }
+    // the feeder's edge crosses the ring's outer edge between j - 1 and j
+    const k = (d - pd) / (qd - pd || 1);
+    const P = [p[0] + (q[0] - p[0]) * k, p[1] + (q[1] - p[1]) * k];
+    const u = unit(f.xs[j] - f.xs[j - 1], f.ys[j] - f.ys[j - 1]); // along the feeder, away from the ring
+    const r = nearestOn(ring, true, P[0], P[1]);
+    let v = unit(-(P[1] - r[1]), P[0] - r[0]); // along the ring edge, away from the feeder
+    if (v[0] * side * f.nx[j] + v[1] * side * f.ny[j] < 0) v = [-v[0], -v[1]];
+    const theta = Math.acos(Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1])));
+    if (theta < 0.05 || theta > Math.PI - 0.05) return null;
+    return { P, theta, m: unit(u[0] + v[0], u[1] + v[1]) };
+  }
+  return null;
+}
+
+// The centre of the fillet for corner i: the corner of bands D = outer + r wide, which is D from both centrelines.
+// Each candidate is checked to really be D from both (a tight bend, the right feeder's U-turn, can fold the
+// widened edge) and to sit in this V, about r / sin(theta / 2) from its corner (where a feeder runs close beside
+// the ring, the widened edges can first cross far down the gap between them). Smaller radii are tried before
+// giving up on a corner, which then keeps its V. Cached on the track.
+export function filletCentre(t, i, outer, r0) {
+  t.centres ??= new Map();
+  const key = `${i}:${outer}:${r0}`;
+  if (!t.centres.has(key)) {
+    let found = null;
+    const v = junctionCorners(t, outer)[i];
+    for (const r of [r0, r0 * 0.7, r0 * 0.45]) {
+      const c = junctionCorners(t, outer + r)[i];
+      if (!c || !v) continue;
+      const reach = r / Math.sin(v.theta / 2); // how far the centre of an ideal fillet sits from the corner
+      if (Math.hypot(c.P[0] - v.P[0], c.P[1] - v.P[1]) > reach * 1.5 + 4) continue;
+      const D = outer + r;
+      const F = nearestOn(t.feeders[i >> 1], false, c.P[0], c.P[1]);
+      const R = nearestOn(t.ring, true, c.P[0], c.P[1]);
+      const ok = Math.abs(Math.hypot(c.P[0] - F[0], c.P[1] - F[1]) - D) < 1 && Math.abs(Math.hypot(c.P[0] - R[0], c.P[1] - R[1]) - D) < 1;
+      if (ok) {
+        found = { C: c.P, D, F, R };
+        break;
+      }
+    }
+    t.centres.set(key, found);
+  }
+  return t.centres.get(key);
+}
+
+// The fillet that rounds corner i off for bands of half-width d (outer >= d is the widest band drawn): a circle
+// of radius D - d round the shared centre C, touching the feeder's edge at A and the ring's at B exactly, curved
+// or straight. Every layer shares C, so the arcs are concentric and the stacked rims stay parallel. Fill
+// X -> A0 -> A -> arc -> B -> B0 -> X to add the missing wall: A0, B0 and X sit `seam` px inside the bands, so over
+// a stroke of the same colour the fill's anti-aliased straight sides leave no hairlines. Null: no fillet here.
+export function filletShape(t, i, d, outer, r0, seam = 3) {
+  const at = junctionCorners(t, d)[i];
+  const c = filletCentre(t, i, outer, r0);
+  if (!at || !c) return null;
+  const { C, D, F, R } = c;
+  const fu = unit(C[0] - F[0], C[1] - F[1]);
+  const ru = unit(C[0] - R[0], C[1] - R[1]);
+  const A = [F[0] + fu[0] * d, F[1] + fu[1] * d];
+  const B = [R[0] + ru[0] * d, R[1] + ru[1] * d];
+  const r = D - d;
+  const a0 = Math.atan2(A[1] - C[1], A[0] - C[0]);
+  const a1 = Math.atan2(B[1] - C[1], B[0] - C[0]);
+  let delta = a1 - a0;
+  while (delta > Math.PI) delta -= 2 * Math.PI;
+  while (delta <= -Math.PI) delta += 2 * Math.PI;
+  const into = seam / Math.sin(at.theta / 2);
+  return {
+    X: [at.P[0] - at.m[0] * into, at.P[1] - at.m[1] * into],
+    A0: [A[0] - fu[0] * seam, A[1] - fu[1] * seam],
+    A,
+    B,
+    B0: [B[0] - ru[0] * seam, B[1] - ru[1] * seam],
+    C,
+    r,
+    a0,
+    a1,
+    ccw: delta < 0,
+  };
+}
+
 // Sample a path at arc distance s (px). Writes x, y, nx, ny into out. Closed paths wrap.
 export function samplePath(path, s, closed, out) {
   let f = s / path.ds;

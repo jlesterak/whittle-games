@@ -5,17 +5,18 @@ import { createSim, generateLevel, isHard, BOBBIN_ROWS } from './rules.js';
 import { DT } from '../../engines/slotsort/sim.js';
 import { Renderer, FIT } from './render.js';
 import { fitStage, canvasDpr } from '../../core/stage.js';
+import { cleanSave } from '../../core/save.js';
 import { makeSounds } from './sounds.js';
 import { COLORS } from './colors.js';
 
 const REWARD = 20;
-const HARD_REWARD = 40; // spec 4.2 (normal levels unrecorded: half)
+const HARD_REWARD = 40; // ref 4.2 (normal levels unrecorded: half)
 const PRICE = 100; // coins per booster, and for Continue after Out of space
 const START_BOOSTERS = { fill: 3, lift: 3, balloon: 3 };
 const FREE_BOOSTER_EVERY = 3; // levels
 const LEVEL_GEN = 1; // bump when the generator changes: an in-progress save of an older level restarts
 const TURBO = 4; // once the win is unavoidable the picture unravels at 4x
-const TOPPLE = 1.7; // seconds from the clog to the Out of space panel (spec 4.1)
+const TOPPLE = 1.7; // seconds from the clog to the Out of space panel (ref 4.1)
 
 const ICONS = {
   restart: `<svg viewBox="0 0 64 64"><path d="M50 30a18 18 0 1 1-6-13" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/><path d="M36 8l14 4-4 14z" fill="#fff"/></svg>`,
@@ -38,8 +39,11 @@ export default {
   mount(root, ctx) {
     const { el, modal, toast } = ctx.ui;
     const S = ctx.settings;
-    const save = { ...freshSave(), ...(ctx.store.get() || {}) };
-    save.boosters = { ...START_BOOSTERS, ...save.boosters };
+    const stored = ctx.store.get();
+    const repaired = [];
+    const save = cleanSave(stored, freshSave(), repaired);
+    if (repaired.length) ctx.store.keep(stored); // a copy of what was there before it is saved over
+    save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
 
     // ---- DOM ----
@@ -225,7 +229,7 @@ export default {
     }
 
     function doFill(s) {
-      // scissors: cut at thread speed-ish, not instantly (spec 5.2)
+      // scissors: cut at thread speed-ish, not instantly (ref 5.2)
       if (sim.fill(s, 0.07, 0.35) && spend('fill')) {
         sounds.snip();
         persist();
@@ -311,7 +315,7 @@ export default {
       uiKey = 'win';
     }
 
-    // Out of space (spec 4.1): the panel offers Continue (an 8th slot, for coins) or Give Up.
+    // Out of space (ref 4.1): the panel offers Continue (an 8th slot, for coins) or Give Up.
     function showLose() {
       sounds.lose();
       const canSlot = sim.slots.length < sim.cfg.maxSlots;

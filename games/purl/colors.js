@@ -1,4 +1,4 @@
-// Purl colours sampled from the original (spec 6.2), plus a tenth (pink) for the top of
+// Purl colours sampled from the original (ref 6.2), plus a tenth (pink) for the top of
 // the 3 -> 10 colour range. Index = colour id used everywhere. yarn = the knit in the picture,
 // bobbin = the spool body, cap = the top-down cap of a buried bobbin. sym = colourblind glyph.
 

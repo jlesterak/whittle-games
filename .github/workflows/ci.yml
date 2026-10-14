@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests
+        run: node --test
+      - name: Service-worker precache list is current
+        run: node tools/precache.mjs --check
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Headless smoke check (every game at phone and desktop sizes)
+        run: node tools/smoke.mjs
+      - name: Service worker (offline start, whole updates)
+        run: node tools/smoke.mjs --sw
+      - name: Broken and odd saves never crash a game
+        run: node tools/smoke.mjs --saves
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-shots
+          path: .work/shots
+          retention-days: 7

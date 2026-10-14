@@ -1,4 +1,4 @@
-// Ludo rules engine (docs/ludo-spec.md 1-2). Pure functions over a plain, JSON-safe game state, so
+// Ludo rules engine (docs/games/ludo.md 1-2). Pure functions over a plain, JSON-safe game state, so
 // the game screen, the bots, saves and the tests all share one source of truth.
 //
 // Positions are per token and relative to its owner: YARD (-1), 0..50 on the shared track
@@ -46,7 +46,7 @@ export function newGame(n, rules = normRules(), humans = null, seed = 1) {
     phase: 'roll', // 'roll' | 'move' | 'over'
     winner: -1, // first place (kept for v1 saves and the end screen)
     places: [], // seats in finishing order; the whole ranking once the game is over
-    // powerups (spec 2.1): the live squares [{ sq, kind }], the seed they and their respawns come from,
+    // powerups (docs/games/ludo.md 2.1): the live squares [{ sq, kind }], the seed they and their respawns come from,
     // shielded tokens, seats frozen for their next turn, and the seats the last turn change skipped
     pu: r.powerups ? placePowerups(seed) : [],
     puSeed: seed,
@@ -193,7 +193,7 @@ export function applyRoll(state, die) {
   return { kind: 'move', moves };
 }
 
-// A token that ended its move on a powerup square gets its effect (spec 2.1). Effects never chain: a
+// A token that ended its move on a powerup square gets its effect (docs/games/ludo.md 2.1). Effects never chain: a
 // token that lands on another powerup square because of one does nothing there. The used square is
 // replaced by a fresh one elsewhere. Returns { kind, sq, token, to, captures, swapped, extra, respawn }.
 function triggerPowerup(state, seat, move) {

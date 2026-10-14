@@ -1,4 +1,4 @@
-// Yacht: game module (docs/yacht-spec.md). Setup is plain responsive DOM like the shelf; play
+// Yacht: game module (docs/games/yacht.md). Setup is plain responsive DOM like the shelf; play
 // sits in a fixed design space fitted by core/stage.js (portrait 1080 wide, or a two-pane 1900x1000
 // layout on wide screens). Rules in rules.js, bots in bot.js; dice, seats, the pass card and bot
 // pacing come from core/.
@@ -7,7 +7,8 @@ import { CATS, LABELS, normRules, newCard, legalBoxes, boxScore, applyScore, tot
 import { botHold, botBox } from './bot.js';
 import { makeRng } from '../../core/rng.js';
 import { reroll, botDelay, BOT_SPEEDS } from '../../core/dice.js';
-import { createSeats, restoreSeats, needsPass, SEAT_COLOURS } from '../../core/seats.js';
+import { createSeats, restoreSeats, needsPass, cleanPlayers, SEAT_COLOURS } from '../../core/seats.js';
+import { isPlain } from '../../core/save.js';
 import { seatSetup, passScreen } from '../../core/seats-ui.js';
 import { makeDie, tumble } from '../../core/dice-view.js';
 import { fitStage } from '../../core/stage.js';
@@ -18,7 +19,7 @@ const ID = 'yacht';
 const PORTRAIT = { W: 1080, H: 1820 };
 const WIDE = { W: 1900, H: 1000 };
 const WIDE_AT = 1.15; // aspect (w / h) above which the two-pane layout is used
-const PACE = { think: 600, roll: 450, look: 700, hold: 550, pick: 850, next: 450 }; // ms at Normal (spec 3)
+const PACE = { think: 600, roll: 450, look: 700, hold: 550, pick: 850, next: 450 }; // ms at Slow; Normal x0.45, Fast x0.2 (core/dice.js botDelay)
 const HIGH_N = 10;
 const NO_HOLD = [false, false, false, false, false];
 // Score card rows: the 13 boxes plus the upper bonus, Yacht bonus and total lines.
@@ -29,6 +30,11 @@ const SETTINGS = [
   { key: 'bonus', label: 'Yacht bonus', options: [['on', '+100'], ['off', 'Off']], default: 'on' },
   { key: 'variant', label: 'Score card', options: [['classic', 'Classic'], ['triple', 'Triple']], default: 'classic' },
   { key: 'botSpeed', label: 'Bot speed', options: BOT_SPEEDS, default: 'normal' },
+];
+
+const DEFAULT_PLAYERS = [
+  { name: 'Player 1', kind: 'human', level: 'medium' },
+  { name: 'Rusty', kind: 'bot', level: 'medium' },
 ];
 
 const BG = '#17402b';
@@ -45,12 +51,21 @@ export default {
     const S = ctx.settings;
     const sounds = makeSounds(ctx.audio, ctx.haptics);
     const stored = ctx.store.get() || {};
+    const high = isPlain(stored.high) ? stored.high : {};
+    const scores = (list) => (Array.isArray(list) ? list.filter((e) => isPlain(e) && Number.isFinite(e.score) && typeof e.date === 'string') : []);
     const save = {
-      setup: { players: [{ name: 'Player 1', kind: 'human', level: 'medium' }, { name: 'Rusty', kind: 'bot', level: 'medium' }] },
-      game: null,
       ...stored,
-      high: { classic: [], triple: [], ...(stored.high || {}) },
+      setup: { players: cleanPlayers(stored.setup?.players, { min: 1, max: 4, fallback: DEFAULT_PLAYERS }) },
+      game: isPlain(stored.game) ? stored.game : null,
+      high: { ...high, classic: scores(high.classic), triple: scores(high.triple) },
     };
+    // anything that was there but had to be dropped: keep a copy of the original before it is saved over
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const dropped =
+      (stored.setup !== undefined && !same(stored.setup?.players, save.setup.players)) ||
+      (stored.game !== undefined && stored.game !== null && save.game === null) ||
+      (stored.high !== undefined && (!isPlain(stored.high) || ['classic', 'triple'].some((k) => k in high && !same(high[k], save.high[k]))));
+    if (dropped) ctx.store.keep(stored);
     const rng = makeRng((Date.now() ^ (Math.random() * 2 ** 32)) >>> 0);
     const params = new URLSearchParams(location.search);
     const autoplay = params.has('autoplay'); // humans are played by the Hard bot, fast (testing)
@@ -208,21 +223,28 @@ export default {
       beginTurn();
     }
 
+    // A saved game that can't be played (a bug, or a hand-edited import) is kept under 'yacht.broken' and the
+    // setup screen comes back, rather than a crash.
     function resumeGame() {
       try {
         g = save.game;
         g.rules = normRules(g.rules);
         seats = restoreSeats(g.seats);
-        if (g.cards.length !== seats.players.length) throw new Error('bad save');
+        const ps = seats.players;
+        const ok = ps.length >= 1 && ps.length <= 4 && cleanPlayers(ps, { min: 1, fallback: [] }).length === ps.length;
+        if (!ok || !Array.isArray(g.cards) || g.cards.length !== ps.length || !Array.isArray(g.dice)) throw new Error('bad save');
+        showView('play');
+        if (g.over) return showOver(false);
+        beginTurn();
       } catch (e) {
         console.warn('yacht: could not resume', e);
+        ctx.store.keep({ game: save.game });
         g = null;
         save.game = null;
-        return showView('setup');
+        persist();
+        toast('Could not resume the last game');
+        showView('setup');
       }
-      showView('play');
-      if (g.over) return showOver(false);
-      beginTurn();
     }
 
     function beginTurn() {

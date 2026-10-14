@@ -1,4 +1,4 @@
-// Ludo powerups (docs/ludo-spec.md 2.1): which squares carry one, which effects exist and how often.
+// Ludo powerups (docs/games/ludo.md 2.1): which squares carry one, which effects exist and how often.
 // Pure data and placement; the effects themselves are applied in rules.js. Squares are absolute track
 // squares (0..51); placement and respawns come from a seed stored in the game, so a save restores them.
 import { makeRng, hashSeed } from '../../core/rng.js';

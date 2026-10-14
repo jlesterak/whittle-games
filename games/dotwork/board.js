@@ -1,4 +1,4 @@
-// Dotwork: the board model and the peel solver. Pure, no DOM (spec 8.1, 8.2).
+// Dotwork: the board model and the peel solver. Pure, no DOM (ref 8.1, 8.2).
 //
 // Level format: { W, H, arrows: [{ cells: [tail .. head] (cell = y * W + x), color }], mask? }
 // An arrow points in the direction of its last step. Tapping it casts a ray from the head to
@@ -33,8 +33,8 @@ export function rayCells(W, H, cells, dir = headDir(W, cells)) {
   return out;
 }
 
-// Spec section 7 format: "<colour><tailX>,<tailY>:<moves>" tokens, moves run-length from the
-// tail ("3U" = 3 cells up). colours maps the letter to a palette index.
+// A compact text format for hand-made boards (tests): "<colour><tailX>,<tailY>:<moves>" tokens, moves run-length
+// from the tail ("3U" = 3 cells up). colours maps the letter to a palette index.
 export function parseArrows(text, W, colours) {
   return text
     .trim()
@@ -106,7 +106,7 @@ function lift(b, id) {
 }
 
 // Tap an arrow. Returns { ok: true } when it escapes, { ok: false, blocker } when it bumps
-// (white, -1 star; a repeat bump of a white arrow costs again, spec unknown 7), or null.
+// (white, -1 star; a repeat bump of a white arrow costs again, ref unknown 7), or null.
 export function fire(b, id) {
   if (b.status !== 'playing' || b.gone[id]) return null;
   const bl = blocker(b, id);
@@ -128,7 +128,7 @@ export function erase(b, id) {
   return true;
 }
 
-// Continue after Out of Stars: the board stays as it is (spec 3).
+// Continue after Out of Stars: the board stays as it is (ref 3).
 export function addStar(b, n = 1) {
   b.stars += n;
   if (b.status === 'lost' && b.stars > 0) b.status = 'playing';
@@ -141,13 +141,14 @@ export function serialize(b) {
 
 export function loadBoard(level, s) {
   const b = createBoard(level);
-  for (const id of s.gone) {
-    if (id < 0 || id >= level.arrows.length) throw new Error('save does not match the level');
-    lift(b, id);
+  const ids = (a) => Array.isArray(a) && a.every((id) => Number.isInteger(id) && id >= 0 && id < level.arrows.length);
+  if (!s || !ids(s.gone) || !ids(s.failed) || !Number.isInteger(s.stars) || s.stars < 0) {
+    throw new Error('save does not match the level');
   }
+  for (const id of s.gone) if (!b.gone[id]) lift(b, id);
   for (const id of s.failed) if (!b.gone[id]) b.failed[id] = 1;
   b.stars = s.stars;
-  b.mistakes = s.mistakes || 0;
+  b.mistakes = Number.isInteger(s.mistakes) ? s.mistakes : 0;
   if (b.stars <= 0 && b.status === 'playing') b.status = 'lost';
   return b;
 }
