@@ -144,7 +144,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   bobbins, persistent facing dispensers, Continue = 8th slot). Engine: `claimDelay` (no thread until
   the bobbin has landed) and time-ordered landings for parallel feeds. Tests: conservation, claim
   rules, dispensers, lose, win, boosters, save/restore
-- Beadloom ice crates and side-facing dispensers (spec C.2): engine `ice` tile (thaws as units are
+- Beadloom ice crates and side-facing dispensers (ref C.2): engine `ice` tile (thaws as units are
   collected; solver, generator and stuck-with-free-slot lose all aware), Beadloom from level ~22, ice cube
   with a bead counter and a shard burst; edge dispensers facing in with a side stripe. In-progress saves
   from the old generator restart the level (LEVEL_GEN)
@@ -152,7 +152,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   via a +1 booster or coins, up to 6 slots, X -> Level failed / Try again), Move Box tooltip with every
   liftable crate raised, idle hint after 9 s over usable boosters only, speed mode chip, Hard / Very Hard
   tag with skull on spike levels; +1 booster capped at 5 slots
-- Beadloom spec: second recording (level 2803, a loss) analysed; lose flow, Move Box, +1 slot, base speed,
+- Beadloom reference notes: second recording (level 2803, a loss) analysed; lose flow, Move Box, +1 slot, base speed,
   idle hint, ice crates and side dispensers marked [M]; refs 15-17
 - Beadloom: 4x fast-forward once the win is unavoidable (every crate placed and every unit left in
   the supply has a waiting crate with room: `sim.winLocked()`), with a "»" badge; test guards it

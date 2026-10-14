@@ -58,7 +58,9 @@ wide screens.
 ## Save
 
 `ctx.store` blob: `{ setup: { players: [{ name, kind, level }] }, game: <in-progress game> | null,
-high: { classic: [...], triple: [...] } }`. The game resumes mid-turn, including during a bot's turn.
+high: { classic: [...], triple: [...] } }`. The game record carries `v: 1` (its shape version), its rules, seats,
+cards, dice, holds and rolls left. The game resumes mid-turn, including during a bot's turn. A missing `high`
+list is filled with empty ones.
 
 ## Testing
 
@@ -66,3 +68,10 @@ high: { classic: [...], triple: [...] } }`. The game resumes mid-turn, including
 - `?debug` exposes `window.__yz()` -> `{ save, g, seats, sel }`.
 - Unit tests: `tests/yacht-rules.test.js` (every box, Joker cases, bonuses, the Triple card),
   `tests/yacht-bot.test.js` (legal holds and boxes under every rule mix, Joker spots, Hard beats Easy).
+
+## Known gaps
+
+- Our free Joker is more generous than the free-choice rule on the cited page (see House rules).
+- The Triple card's multipliers and its per-column Joker are our own house variant; no public source is cited.
+- No migration path exists yet for a `v: 2` game record; a shape change would need one (CLAUDE.md, "Never break
+  a save").

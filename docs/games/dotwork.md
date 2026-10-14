@@ -48,7 +48,7 @@ Knobs by level (`knobs(n)`; t runs from 0 at level 1 to 1 at level 80):
 | 20 (hard) | 15x19 | 3 | 18 | 26 % |
 | 40 (hard) | 22x28 | 4 | 25 | 18 % |
 | 80 (hard) | 34x43 | 5 | 33 | 10 % |
-| 150+ | up to 40x45 | 5 | 33 | 10 % |
+| 150+ | up to 40x50 (pictures 40x45) | 4, hard 5 (pictures 2) | 33 | 10 % |
 
 - **Hard levels:** every 5th level from 5 on: a 15 % bigger board, harder targets, a HARD LEVEL splash and tab,
   double coins.
@@ -59,6 +59,12 @@ Knobs by level (`knobs(n)`; t runs from 0 at level 1 to 1 at level 80):
   (`level208.js`). See docs/DECISIONS.md D2.
 
 Colour carries no rule (it only separates neighbouring arrows), so Dotwork has no colourblind glyphs.
+
+## Settings and display
+
+- No game settings of its own (`settings: []`); the global Sound, Haptics and Reduced motion apply.
+- Reduced motion: camera moves jump instead of gliding, the win dot wave is skipped and the LEVEL COMPLETED card
+  comes after 0.3 s instead of 1.8 s; the HARD LEVEL mascot and the end-screen animations stop moving.
 
 ## Controls
 

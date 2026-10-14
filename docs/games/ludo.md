@@ -37,8 +37,9 @@ How sure each item is: **[R]** = classic rule, **[H]** = house rule or a variant
 - **Extra roll on a 6:** roll again after the move (or after no move, if none was legal).
 - **Three 6s in a row** in one turn: the third 6 is not played and the turn ends at once.
 - **No legal move:** the turn passes (still rolling again on a 6).
-- **End:** the first player with all four tokens home wins and the game ends. **[D]** The rest are ranked
-  by tokens home, then by total steps travelled. (Playing on for places is an open question below.)
+- **End [D]:** the first player with all four tokens home wins and takes 1st place; play goes on for the other
+  places, skipping finished players, until one player is left. If only bots are left, they are ranked by
+  progress (tokens home, then total steps travelled) instead of being played out.
 
 ## 2. House rules (Settings → Ludo) [H]
 
@@ -120,9 +121,10 @@ capture or home bonus after a 5 starts the count again.
   more humans play, and it is not the human who played last, a full-screen **"Pass to <name>"** card in
   that seat's colour waits for a tap. Extra rolls stay with the same player, so no card. Bot turns play
   in the open. Ludo has no hidden information, so the card is only a hand-over cue.
-- **Bot pace [D]:** about 0.4 s thinking, the 0.45 s roll tumble, 0.45 s to look at the die, the chosen token
-  lifts for 0.3 s, then it hops 0.11 s per square, and 0.35 s before the next turn. Slow ×1.6, Fast ×0.45
-  (`core/dice.js` `botDelay`). **Reduced motion** keeps the pauses but drops the tumble, the hops and the
+- **Bot pace [D]:** `PACE` in `games/ludo/game.js` lists the delays in ms at **Slow**; Normal (the default) is
+  ×0.45 and Fast ×0.2 (`core/dice.js` `botDelay`). At Normal: about 0.18 s thinking, 0.23 s for the roll, 0.2 s
+  to look at the die, a 0.14 s lift of the chosen token, 0.05 s per square hopped, and 0.16 s before the next
+  turn. **Reduced motion** keeps the pauses but drops the tumble, the hops and the
   pulsing: tokens jump straight to their square.
 
 ### 3.1 Bot strategy
@@ -153,7 +155,7 @@ All bots choose from `legalMoves()`, so they cannot break a rule.
 Setup is ordinary responsive DOM, like Yacht's. The play screen sits in a fixed design space fitted
 with `core/stage.js` inside the safe areas:
 
-- **portrait:** 1080 wide, at least 1700 tall: top bar, player strip, the board (1020 × 1020, 68 per
+- **portrait:** 1080 wide, at least 1660 tall: top bar, player strip, the board (1020 × 1020, 68 per
   square, so about 23 CSS px per square at 360 px wide), then the die tray, which takes the extra height.
 - **landscape** (aspect > 1.15): 1900 × 1000, controls on the left and the board (940) on the right.
 
@@ -228,7 +230,9 @@ card, reduced motion, and an offline reload that resumes mid-move.
 | Hard vs 3 Easy | 4000 | 72.6 % | 25 % |
 | Hard vs 3 Medium | 4000 | 46.0 % | 25 % |
 
-A 2-player game takes about 175 rolls, a 4-player game about 400-490. Under house rules Hard beats
+A 2-player game takes about 170-180 rolls. A 4-player game has its first finisher after about 400-500 rolls and
+ends (one player left) after about 510-600 (classic rules, 1000 games per line-up, seed 99, measured 2026-10-14
+for Hard vs Easy, Hard vs Medium, Hard vs 3 Easy, Hard vs 3 Medium and 4 Medium). Under house rules Hard beats
 Easy 92 % with blockades, 88 % with no safe squares, and 98 % with 1-or-6 exits plus both bonus rolls
 (more choices per roll reward the better chooser).
 
@@ -239,12 +243,17 @@ Easy 92 % with blockades, 88 % with no safe squares, and 98 % with 1-or-6 exits 
 ## 7. Open questions for play-testing
 
 - Bot pace at Normal with three bots: watchable, or too slow between your turns?
-- Should the game play on for 2nd and 3rd place when several humans play?
 - Is the near-token tap radius right, or does it pick the wrong token in crowded spots?
 - Auto-move: helpful, or does it surprise?
 - Does Hard feel clearly stronger than Medium without being unfair?
 
-## 8. Save and testing
+## 8. Known gaps
+
+- The open questions in section 7 wait for the owner's play-test (PLAN P9).
+- The blockade house rule differs from the one on the cited page (see Sources at the top).
+- Bot pace and the tap radius were tuned headless, not yet on a phone with three bots.
+
+## 9. Save and testing
 
 - `ctx.store` blob: `{ setup: { players: [{ name, kind, level }] }, game: <in-progress game> | null }`. The game
   state is plain JSON (`rules.js`); `loadGame()` brings saves from older versions up to date (v1 saves ended at the

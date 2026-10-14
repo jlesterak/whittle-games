@@ -27,7 +27,7 @@ the rules for agents are in CLAUDE.md.
 - `games/index.js` : the shelf's game list
 - `games/<id>/` : one folder per game
 - `docs/` : this file, the game docs (`docs/games/`), decisions and credits. Private reference
-  material (`docs/ref/`, most `docs/*-spec.md`) is gitignored and never committed. Code comments that cite
+  material (`docs/ref/` and the `docs/*-spec.md` files listed in `.gitignore`) is never committed. Code comments that cite
   `ref <section>` (e.g. `ref C.3`) point into those private notes; what the code does is in `docs/games/`.
 - `tools/precache.mjs` : regenerates the service worker's file list
 - `tests/` : `node:test` unit tests and level fixtures

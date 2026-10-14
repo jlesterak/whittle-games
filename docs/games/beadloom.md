@@ -53,7 +53,7 @@ Generated on the device, the same on every phone (`rules.js` knobs, `engines/slo
 
 1. Knobs from the level number. Difficulty d rises from 0 at level 1 to 1 at level 60; every 5th level is a
    breather (d x 0.7) and every 10th a spike (+0.12, tagged **Hard**, or **Very Hard** once d >= 0.9). After 60, d
-   wanders between 0.7 and 1.
+   wanders between 0.7 and 1 before those adjustments (so breathers can drop to about 0.49).
 2. Board: 6 to 25 crates (about 6 + 19d), 1-2 crates per colour, of 19 colours; shape from the crate count;
    special tiles as above.
 3. A "competent player" clears the board; its pick order is turned into the bead stream: two segments per crate

@@ -18,7 +18,7 @@ const ID = 'yacht';
 const PORTRAIT = { W: 1080, H: 1820 };
 const WIDE = { W: 1900, H: 1000 };
 const WIDE_AT = 1.15; // aspect (w / h) above which the two-pane layout is used
-const PACE = { think: 600, roll: 450, look: 700, hold: 550, pick: 850, next: 450 }; // ms at Normal
+const PACE = { think: 600, roll: 450, look: 700, hold: 550, pick: 850, next: 450 }; // ms at Slow; Normal x0.45, Fast x0.2 (core/dice.js botDelay)
 const HIGH_N = 10;
 const NO_HOLD = [false, false, false, false, false];
 // Score card rows: the 13 boxes plus the upper bonus, Yacht bonus and total lines.
