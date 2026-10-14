@@ -8,8 +8,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 ## [IN PROGRESS]
 - P1 Public-ready pass (done; waiting for the reviewer)
 - R4 Public game docs (written; waiting for the reviewer)
-- R2 CI (green on PR #3; waiting for the reviewer)
-- R3 Headless smoke check (tool and CI job added; waiting for CI and the reviewer)
 
 ## [PENDING]
 - P2 Whole updates, never mixed versions
@@ -34,6 +32,9 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: R3 headless smoke check: tools/cdp.mjs + tools/smoke.mjs (no npm packages), 18 pages in ~35 s, in CI
+  with screenshots kept; vibrate waits for the first tap; Dotwork hides its parked bars while erasing
+- 2026-10-14: R2 CI: node --test (now also imports every app module) and the precache check on PRs and master
 - 2026-10-14: R1 agent docs and plan: CLAUDE.md (rules adopted from Skyband), PLAN.md, TODO.md by item ID,
   README split into README + docs/ARCHITECTURE.md, docs/DECISIONS.md, docs/CREDITS.md
 

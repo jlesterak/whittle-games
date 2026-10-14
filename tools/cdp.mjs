@@ -83,7 +83,8 @@ export async function launch({ chrome = findChrome(), args = [] } = {}) {
       conn.ws.close();
       proc.kill();
       await new Promise((r) => (proc.exitCode != null ? r() : proc.once('exit', r)));
-      rmSync(profile, { recursive: true, force: true });
+      // Chrome may still be flushing its profile for a moment after exit
+      rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     },
   };
 }

@@ -105,8 +105,8 @@ export function watchErrors(page) {
 }
 
 // Layout checks run inside the page; each returns a list of problems (strings).
-// Controls: a visible control partly outside the viewport (and not in something that scrolls) is cut off.
-// One wholly outside it is parked there on purpose (a banner slid out of view) and is skipped.
+// Controls: a visible control outside the viewport (and not in something that scrolls) is cut off or lost.
+// A bar parked out of view on purpose must also be hidden (visibility: hidden), so it can't be focused.
 export const CONTROLS_CHECK = `(() => {
   const problems = [];
   const vw = innerWidth, vh = innerHeight;
@@ -124,7 +124,6 @@ export const CONTROLS_CHECK = `(() => {
     const r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1 || getComputedStyle(el).visibility === 'hidden' || opacity(el) < 0.05) continue;
     if (el.closest('[hidden]')) continue;
-    if (r.right <= 0 || r.left >= vw || r.bottom <= 0 || r.top >= vh) continue; // parked out of view
     const where = Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height);
     if (r.left < -1 || r.right > vw + 1) problems.push('control cut off at the side: "' + name(el) + '" at ' + where);
     else if ((r.top < -1 || r.bottom > vh + 1) && !scrollsY(el)) problems.push('control cut off: "' + name(el) + '" at ' + where);
@@ -133,11 +132,13 @@ export const CONTROLS_CHECK = `(() => {
   const err = document.querySelector('.error');
   if (err) problems.push('error shown: ' + err.textContent);
   if (!document.getElementById('app')?.children.length) problems.push('app is empty');
+  const game = document.querySelector('.game-root');
+  if (game && !game.children.length) problems.push('game drew nothing (empty .game-root)');
   return problems;
 })()`;
 
-// Canvases: one flat colour soon after load means the render loop died. (Checked early: a finished level may
-// legitimately leave a near-empty canvas behind its end screen.)
+// Canvases: one flat colour means nothing is drawn. Polled from load until it passes, because a finished level
+// may legitimately leave a near-empty canvas behind its end screen later on.
 export const CANVAS_CHECK = `(() => {
   const problems = [];
   for (const c of document.querySelectorAll('canvas')) {
@@ -154,6 +155,9 @@ export const CANVAS_CHECK = `(() => {
   }
   return problems;
 })()`;
+
+// True once the shelf or a game has put something on screen.
+const MOUNTED = `(() => { const g = document.querySelector('.game-root'); return g ? g.children.length > 0 : !!document.getElementById('app')?.children.length; })()`;
 
 // Centre of the first visible button whose text (or aria-label) is `text`, in CSS px, or null.
 export async function findButton(page, text) {
@@ -192,8 +196,16 @@ async function runOne(browser, base, { id, vp, params, wait, out, hires }) {
       await page.tap(at.x, at.y);
       await sleep(300);
     }
-    await sleep(1000);
-    problems.push(...(await page.eval(CANVAS_CHECK)), ...(await page.eval(CONTROLS_CHECK)));
+    // the game has up to 8 s to mount and draw (slow runners, big generated levels)
+    let blank = [];
+    for (let t = 0; t < 8000; t += 400) {
+      blank = await page.eval(`(${MOUNTED}) && ${CANVAS_CHECK}`);
+      if (Array.isArray(blank) && !blank.length) break;
+      await sleep(400);
+    }
+    if (!Array.isArray(blank)) problems.push('game never mounted (empty .game-root after 8 s)');
+    else problems.push(...blank);
+    problems.push(...(await page.eval(CONTROLS_CHECK)));
     await sleep(Math.max(0, wait - 1) * 1000);
     for (const p of await page.eval(CONTROLS_CHECK)) if (!problems.includes(p)) problems.push(p);
     await shot(id);
@@ -205,6 +217,12 @@ async function runOne(browser, base, { id, vp, params, wait, out, hires }) {
   return [...errors, ...problems];
 }
 
+function num(flag, v, min) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
+  return n;
+}
+
 function parseArgs(argv) {
   const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false };
   for (let i = 0; i < argv.length; i++) {
@@ -214,9 +232,9 @@ function parseArgs(argv) {
     else if (a === '--viewport') opts.viewports = next().split(',');
     else if (a === '--params') opts.params = next();
     else if (a === '--no-autoplay') opts.autoplay = false;
-    else if (a === '--wait') opts.wait = +next();
+    else if (a === '--wait') opts.wait = num(a, next(), 0);
     else if (a === '--out') opts.out = next();
-    else if (a === '--jobs') opts.jobs = Math.max(1, +next());
+    else if (a === '--jobs') opts.jobs = num(a, next(), 1);
     else if (a === '--hires') opts.hires = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
@@ -229,7 +247,13 @@ function parseArgs(argv) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  let opts;
+  try {
+    opts = parseArgs(process.argv.slice(2));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(2);
+  }
   const t0 = Date.now();
   const { server, url } = await serve();
   const browser = await launch();

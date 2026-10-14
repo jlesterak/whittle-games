@@ -593,13 +593,14 @@ const CSS = `
 .po-gear svg { width: 100%; height: 100%; }
 .po-banner { position: absolute; left: 30px; right: 30px; top: 40px; height: 150px; border-radius: 44px; background: #f08ab8;
   display: flex; align-items: center; gap: 24px; padding: 0 140px 0 50px; font-size: 40px; color: #4a1030;
-  transform: translateY(-260px); transition: transform .25s; }
+  transform: translateY(-260px); visibility: hidden; transition: transform .25s, visibility 0s .25s; }
 .po-banner b { font-size: 52px; color: #fff; -webkit-text-stroke: 8px #a0306a; paint-order: stroke fill; }
 .po-x { position: absolute !important; right: 30px; top: 30px; width: 90px; height: 90px; border-radius: 50% !important;
   background: #e8323c !important; color: #fff !important; font-size: 64px !important; line-height: 1; box-shadow: 0 6px 0 #8a1010; }
-.po-erasing .po-banner { transform: none; }
-.po-erasing .po-hud { transform: translateY(-260px); }
-.po-erasing .po-boosts { transform: translateY(400px); }
+/* parked bars slide out, then hide so they can't be focused or tapped off-screen */
+.po-erasing .po-banner { transform: none; visibility: visible; transition: transform .25s; }
+.po-erasing .po-hud { transform: translateY(-260px); visibility: hidden; transition: transform .25s, opacity .25s, visibility 0s .25s; }
+.po-erasing .po-boosts { transform: translateY(400px); visibility: hidden; transition: transform .25s, visibility 0s .25s; }
 .po-tip { position: absolute; left: 60px; right: 60px; top: 230px; text-align: center; font-size: 42px; opacity: 0; transition: opacity .3s;
   -webkit-text-stroke: 9px #151823; paint-order: stroke fill; }
 .po-tip.show { opacity: 1; }
