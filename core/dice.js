@@ -29,6 +29,6 @@ export const BOT_SPEEDS = [
   ['normal', 'Normal'],
   ['fast', 'Fast'],
 ];
-// Normal was Fast until 2026-10-09 (Jake: bots felt slow); everything moved one step quicker.
+// Normal was Fast until 2026-10-09 (owner: bots felt slow); everything moved one step quicker.
 const PACE = { slow: 1, normal: 0.45, fast: 0.2 };
 export const botDelay = (speed, ms) => Math.round(ms * (PACE[speed] ?? 1));

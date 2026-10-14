@@ -20,7 +20,20 @@ README line once the owner picks.
 
 Some boards were rebuilt by hand from screen recordings of commercial games, as test fixtures and one playable
 level. Methods of play are not protected by copyright (see docs/CREDITS.md), but a specific level layout might
-be, and the repo is public. P1 lists every such file here.
+be, and the repo is public. The files (P1, 2026-10-14):
+
+- `games/dotwork/level208.js`: a Dotwork board rebuilt cell by cell from a recording. It is playable as level 208
+  and is the fixture in `tests/dotwork-board.test.js` and `tests/dotwork-generator.test.js`.
+- `tests/fixtures/level2796.js`: a Beadloom board, its special tiles and a logged pick order from a recording
+  (`tests/beadloom-solver.test.js`). The level number 2796 also appears in the solver test's list of generated
+  levels, which is only a number.
+- `tests/fixtures/level254.js`: a Purl board, its dispensers and a logged pick order from a recording
+  (`tests/purl-solver.test.js`).
+
+Not level data, but also taken from recordings: the colour values in `games/beadloom/colors.js` and
+`games/purl/colors.js` (their comments say sampled), probably Dotwork's palette in `games/dotwork/colors.js`
+(unverified), and timings such as belt and thread speeds. These are measurements, not copied assets. The art itself is drawn in code, and the names and level generators are ours.
+The private specs and reference stills were never committed (checked with `git log --all` on 2026-10-14).
 
 Recommendation: keep them as test fixtures only if the owner is comfortable; otherwise replace each with a
 generated board of the same size and difficulty (the tests only need its shape and stats), and replace Dotwork's

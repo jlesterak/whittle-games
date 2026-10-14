@@ -1,7 +1,7 @@
 {
   "name": "Whittle",
   "short_name": "Whittle",
-  "description": "Jake's offline game shelf.",
+  "description": "An offline game shelf. No ads, no accounts.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

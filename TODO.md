@@ -6,12 +6,12 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
+- P1 Public-ready pass (done; waiting for the reviewer)
 - R4 Public game docs (written; waiting for the reviewer)
 - R2 CI (green on PR #3; waiting for the reviewer)
 - R3 Headless smoke check (tool and CI job added; waiting for CI and the reviewer)
 
 ## [PENDING]
-- P1 Public-ready pass
 - P2 Whole updates, never mixed versions
 - P3 Save safety
 - P4 Beadloom 6-column boards: check the old TODO item
@@ -38,23 +38,23 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   README split into README + docs/ARCHITECTURE.md, docs/DECISIONS.md, docs/CREDITS.md
 
 ## History (before PLAN.md, newest first)
-- Beadloom track layout (Jake, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
+- Beadloom track layout (owner, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings
   never shrink below a round hole (dropped the scaled-down and pinched hourglass shapes), feeder arms sit at the
   screen sides and merge at an angle instead of running alongside the ring, waiting rows stop at the ring's edge and
   draw over it, HUD moved up into the headroom and the speed toggle to the left so neither covers an arm.
   Checked headless at 412x780 / 412x915 on levels 1, 5-11, 40, 55 (rings of 80-130 rows)
-- Jake play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
-- Ludo powerups board (Jake, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
+- The owner play-tested Yacht, Ludo, Dotwork and Purl on the phone: "great" / "looks good on mobile" (2026-10-09)
+- Ludo powerups board (owner, 2026-10-09): house rule "Powerups" (off by default), 8-10 seeded squares with eight
   effects (jump +3 / +6, swap, shield, roll again, back to start, back, freeze), used squares respawn, icon layer,
   legend (?), banners and sounds, Medium/Hard value the squares. Spec 2.1; unit-tested; checked headless at
-  360x740 and 1440x900. Jake: play-test it (effect mix, whether freeze/back to start feel too harsh)
-- Ludo plays on after the first winner (Jake, 2026-10-09): finished players take places and are skipped; ends at one
+  360x740 and 1440x900. Owner: play-test it (effect mix, whether freeze/back to start feel too harsh)
+- Ludo plays on after the first winner (owner, 2026-10-09): finished players take places and are skipped; ends at one
   left, or ranks a bots-only remainder by progress. Unit-tested (63 tests); a full 2-human game not yet checked live
-- Yacht Play again starts the next game with the current house rules, like Ludo (Jake, 2026-10-09);
+- Yacht Play again starts the next game with the current house rules, like Ludo (owner, 2026-10-09);
   mid-game rule changes still wait for the next game
 - Ludo auto-roll (setting, on by default): a human only acts when a token must be chosen. Bot pace one step
-  faster in every dice game: Normal = the old Fast (x0.45), Fast = x0.2, Slow = the old Normal (Jake, 2026-10-09)
-- Dropped the Dice Tray placeholder (Jake, 2026-10-09): Yacht and Ludo now exercise the dice helpers
+  faster in every dice game: Normal = the old Fast (x0.45), Fast = x0.2, Slow = the old Normal (owner, 2026-10-09)
+- Dropped the Dice Tray placeholder (owner, 2026-10-09): Yacht and Ludo now exercise the dice helpers
 - Ludo polish (milestone 4): layouts checked headless at 384x693, 360x740, 412x915, 768x1024, 1440x900 and
   915x412 (setup, busy 4-seat game with stacks and colourblind shapes, pass card, game over); fixes: die face
   under the button reset, dark ring on movable tokens, tokens kept under the game-over card, tall-phone spacer;
@@ -111,7 +111,7 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - Dotwork model (milestone 1): `games/dotwork/board.js` (ray-cast tap rule, bump = white + -1 star,
   lanes free at launch, eraser, +1 star continue, save/restore, greedy peel solver), level 208 reconstructed
   from the recording as `level208.js` (163 arrows, 31 peel layers, 17 free at start) as the fixture
-- Layout fix after Jake's phone test (Firefox Android, S22 Ultra): both games fit fully at any aspect.
+- Layout fix after the owner's phone test (Firefox Android, S22 Ultra): both games fit fully at any aspect.
   Shared `core/stage.js` contain-fits the design plus headroom above y=0 inside the safe area
   (`.game-root` now honours env(safe-area-inset-*)); Beadloom feeder arms end in rounded caps inside
   the headroom and small boards sit centred; Purl's frame gets a top rail, its tip moved off the

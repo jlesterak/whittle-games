@@ -1,6 +1,6 @@
 # Ludo
 
-Jake's brief: "classic rules, house-rule toggles, bots, pass-and-play".
+The owner's brief: "classic rules, house-rule toggles, bots, pass-and-play".
 There is no recording to copy. The rules are the common modern Ludo ones (four tokens, a 6 to come out,
 start squares and star squares are safe). The screens are our own, built on the shared `core/` that
 Yacht added for this game: seats and seat colours, the pass card, the pip die and bot pacing.
