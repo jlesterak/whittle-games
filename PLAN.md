@@ -15,7 +15,7 @@ Goals, in this order:
 Target repo layout (create as items need it):
 
 ```
-.github/workflows/ci.yml   tests, precache check, syntax check, headless smoke
+.github/workflows/ci.yml   tests (incl. every module links), precache check, headless smoke
 core/ engines/ games/      the app (layout unchanged)
 docs/ARCHITECTURE.md       shell, engine and game module interface (moved out of README)
 docs/games/<id>.md         public doc per game, in our own words: rules, levels, controls, saves, test helpers
@@ -36,16 +36,17 @@ tools/precache.mjs         (exists) service-worker file list
 - **Do:** `CLAUDE.md` (+ `AGENTS.md` symlink), this `PLAN.md`, `TODO.md` keyed by item ID with the old history
   kept and an owner Inbox, README cut down to what / why / run with the developer sections moved to
   `docs/ARCHITECTURE.md`, `docs/CREDITS.md`, `docs/DECISIONS.md`.
-- **Acceptance:** every relative link in README.md, CLAUDE.md and docs/*.md points at a tracked file;
-  `node --test` passes.
+- **Acceptance:** every relative link in README.md, CLAUDE.md, PLAN.md, TODO.md and docs/*.md points at a
+  tracked file; every PLAN.md item ID is in TODO.md; `node --test` passes.
 - **Verify:** `node --test` ; check links with a one-liner over `git ls-files`.
 - **Depends:** none
 
 ### R2. CI
-- **Do:** `.github/workflows/ci.yml` on push and pull request: Node 22; `node --test`;
-  `node tools/precache.mjs --check`; `node --check` on every tracked `.js`/`.mjs` file. Later items add the smoke run.
+- **Do:** `.github/workflows/ci.yml` on pushes to master and on pull requests: Node 22; `node --test`;
+  `node tools/precache.mjs --check`. A test imports every app module in Node, so a syntax error or a broken import
+  in a file with no unit tests (most `game.js` and `render.js`) fails CI too. Later items add the smoke run.
 - **Acceptance:** the workflow is green on the PR; each step fails when its check fails (try locally: stale
-  precache list, a syntax error in a scratch copy).
+  precache list, a renamed export).
 - **Verify:** run the same commands locally.
 - **Depends:** R1
 
@@ -75,11 +76,12 @@ tools/precache.mjs         (exists) service-worker file list
 - **Do:** `docs/games/{beadloom,purl,dotwork,yacht,ludo}.md`, written from the code and the tests, in our own
   words: what the player does, rules, win and lose, boosters and coins, difficulty knobs by level, settings,
   save shape and versioning, test URL helpers, known gaps. Move `docs/ludo-spec.md` to `docs/games/ludo.md`.
-  Yacht's classic rules cite a public source. Point code comments at the new docs. Trim the per-game sections in
-  ARCHITECTURE.md to a link each.
+  Yacht's classic rules cite a public source. Point code comments at the new docs, including the `spec C.3`-style
+  section references in Beadloom, Purl and Dotwork. Trim the per-game sections in ARCHITECTURE.md to a link each.
 - **Acceptance:** each doc covers the list above; numbers in it (slots, capacities, prices, knob ranges) match
   the code (the reviewer spot-checks ten); no commercial game names; no tracked file refers to a gitignored spec.
-- **Verify:** `git grep -n -e "-spec\.md" -- ':!.gitignore'` prints nothing ; `node --test`
+- **Verify:** `git grep -n -E "(beadloom|purl|dotwork|yacht|ludo)-spec" -- ':!.gitignore'` prints nothing ;
+  `node --test`
 - **Depends:** R1
 
 ---
@@ -128,7 +130,8 @@ tools/precache.mjs         (exists) service-worker file list
 
 ### P4. Beadloom 6-column boards: check the old TODO item
 - **Why:** TODO says 6-wide boards need a per-level column layout in render.js, but `rules.js` knobs already make
-  6-column boards (level 22+, hard levels) and `render.js` has a 6-column pitch. The item may be stale.
+  6-column boards (allowed from level 22 when difficulty is high; in practice levels 48, 51-53 and 57-60) and
+  `render.js` has a 6-column pitch. The item may be stale.
 - **Do:** find levels with `cols: 6` (`generateLevel(n).board.cols`), run them headless at phone sizes, and either
   close the TODO item with screenshots in the commit body or fix what is wrong (crates, dispensers, side zones).
 - **Acceptance:** at least three 6-column levels render with every crate inside the board area at 360x740 and
@@ -138,11 +141,12 @@ tools/precache.mjs         (exists) service-worker file list
 
 ### P5. Beadloom track as one filled outline
 - **Why:** the feeder tubes and the ring are drawn as separate stroked centrelines, so where a straight tube wall
-  meets the curved ring wall there is a small V-notch (TODO, 2026-10-13).
+  meets the curved ring wall there is a small V-notch. The note predates the 2026-10-13 layout rewrite (fe36e3e),
+  which removed `feederExt`; the track is still drawn as separate strokes, so first check whether the notch is
+  still visible. If it is not, close the item with close-up shots.
 - **Do:** draw the whole track (ring and both feeders) as one unioned filled outline: offset each centreline by
   ±(CHANNEL/2 + WALL) for the wall band and ±CHANNEL/2 for the dark channel (`resample()` already carries unit
-  normals), fill each as one `Path2D` (nonzero winding unions the overlaps), beads on top. Remove `feederExt`
-  if it is no longer needed.
+  normals), fill each as one `Path2D` (nonzero winding unions the overlaps), beads on top.
 - **Acceptance:** close-up screenshots of both junctions on levels 1, 5, 11, 40 and 55 show no notch (before and
   after crops in the commit body); smoke passes; frame time not worse (P7 numbers if available).
 - **Verify:** `node tools/smoke.mjs --game beadloom` plus close-up captures
@@ -244,9 +248,10 @@ tools/precache.mjs         (exists) service-worker file list
 - **Verify:** `node --test` ; `node tools/smoke.mjs --game klondike`
 - **Depends:** E3
 
-### E6. Ideas, not scheduled
+### Ideas (not items yet)
 - Another slot-sort game with an original theme (design doc for the owner first), Mancala, Dominoes,
-  Hearts with bots on `core/cards.js`, stats per game. Agents may propose more in DECISIONS.md.
+  Hearts with bots on `core/cards.js`, stats per game. Agents may propose more in DECISIONS.md; an idea becomes an
+  item with an ID once the owner agrees.
 
 ---
 
@@ -257,7 +262,9 @@ tools/precache.mjs         (exists) service-worker file list
   nothing until the owner enables Pages (D3). `docs/INSTALL.md`: install from Chrome or Firefox on Android and
   Safari on iOS, how updates arrive (P2), export the save before changing phones.
 - **Acceptance:** the workflow is valid and skipped while Pages is off; INSTALL.md steps match the app.
-- **Depends:** P2, D3
+- **Verify:** the workflow run on the PR shows the deploy job skipped; follow INSTALL.md against a local server
+  in a phone-sized headless browser (manifest and service worker load, `beforeinstallprompt` fires).
+- **Depends:** P2
 
 ### X1h. [HUMAN] Publish
 - Owner decides D3 and enables Pages. Agents: check the live site with smoke against its URL afterwards.
@@ -269,4 +276,5 @@ tools/precache.mjs         (exists) service-worker file list
 - **D1. [HUMAN]** License for the repo (it is public and has none yet).
 - **D2. [HUMAN]** Level data reconstructed from recordings of commercial games: keep, or swap for generated boards.
 - **D3. [HUMAN]** Host a public build on GitHub Pages?
-- **D4.** Order of new games. Agents follow the order above unless the owner changes it in DECISIONS.md.
+- **D4.** Order of new games. Not blocking (no TODO entry): agents follow the order above unless the owner
+  changes it in DECISIONS.md.

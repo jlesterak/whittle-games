@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- R1 Agent docs and plan
 
 ## [PENDING]
 - R2 CI
@@ -35,6 +34,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - D3 [HUMAN] Public hosting
 
 ## [COMPLETED]
+- 2026-10-14: R1 agent docs and plan: CLAUDE.md (rules adopted from Skyband), PLAN.md, TODO.md by item ID,
+  README split into README + docs/ARCHITECTURE.md, docs/DECISIONS.md, docs/CREDITS.md
 
 ## History (before PLAN.md, newest first)
 - Beadloom track layout (Jake, 2026-10-13: "layout still wonky, incoming beads hidden in the ring beads"): rings

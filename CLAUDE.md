@@ -34,8 +34,9 @@ Work through the plan; don't wait for chat replies.
 
 - **Simplicity first.** If something simple gets 95% of the way, pick it over the complex option and write down
   the missing 5%. Fewer dependencies, layers and config knobs. No runtime dependencies, no framework, no build
-  step: the files in the repo are the app. Dev tools use the Node 20+ standard library (`node:test`, built-in
-  `WebSocket`); adding any npm package needs a note in docs/DECISIONS.md saying why it earns its place.
+  step: the files in the repo are the app. Dev tools use the Node standard library only (`node:test`; the
+  built-in `WebSocket` needs Node 22); adding any npm package needs a note in docs/DECISIONS.md saying why it
+  earns its place.
 - **Don't reinvent.** Reuse `core/` (stage fit, seats, dice, rng, ui, audio) and `engines/slotsort/`. When a second
   game needs something one game has, move it to `core/` instead of copying it.
 - **Offline always.** Every app file is in the service-worker precache (`node tools/precache.mjs`). No network
@@ -71,7 +72,8 @@ Work through the plan; don't wait for chat replies.
 
 ## Environment notes
 
-- Node 20+ (CI uses 22). Tests: `node --test`. Serve: `python3 -m http.server 8000` from the repo root.
+- Node 22 (CI uses 22; unit tests also run on 20). Tests: `node --test`. Serve: `python3 -m http.server 8000`
+  from the repo root.
 - Headless checks: `tools/smoke.mjs` (item R3) drives Chromium over the DevTools protocol with no npm packages.
   It finds the browser via `$CHROME`, then common paths. Claude cloud sandboxes have Chromium under
   `/opt/pw-browsers`; don't run `playwright install`.
