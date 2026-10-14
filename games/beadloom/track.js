@@ -340,16 +340,21 @@ function corner(ring, f, side, d) {
 }
 
 // The centre of the fillet for corner i: the corner of bands D = outer + r wide, which is D from both centrelines.
-// A tight bend (the right feeder's U-turn) can fold the widened edge, so each candidate is checked to really be D
-// from both, trying smaller radii before giving up on that corner (it then keeps its V). Cached on the track.
+// Each candidate is checked to really be D from both (a tight bend, the right feeder's U-turn, can fold the
+// widened edge) and to sit in this V, about r / sin(theta / 2) from its corner (where a feeder runs close beside
+// the ring, the widened edges can first cross far down the gap between them). Smaller radii are tried before
+// giving up on a corner, which then keeps its V. Cached on the track.
 export function filletCentre(t, i, outer, r0) {
   t.centres ??= new Map();
   const key = `${i}:${outer}:${r0}`;
   if (!t.centres.has(key)) {
     let found = null;
+    const v = junctionCorners(t, outer)[i];
     for (const r of [r0, r0 * 0.7, r0 * 0.45]) {
       const c = junctionCorners(t, outer + r)[i];
-      if (!c) continue;
+      if (!c || !v) continue;
+      const reach = r / Math.sin(v.theta / 2); // how far the centre of an ideal fillet sits from the corner
+      if (Math.hypot(c.P[0] - v.P[0], c.P[1] - v.P[1]) > reach * 1.5 + 4) continue;
       const D = outer + r;
       const F = nearestOn(t.feeders[i >> 1], false, c.P[0], c.P[1]);
       const R = nearestOn(t.ring, true, c.P[0], c.P[1]);

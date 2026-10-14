@@ -261,6 +261,7 @@ export class Renderer {
     g.globalAlpha = 0.25;
     g.drawImage(sh, 0, 0);
     g.restore();
+    sh.width = sh.height = 0; // let go of its pixels until the next rebuild
     stroke(g, CHANNEL + 2 * WALL + 4, '#5d669f', 0, true);
     stroke(g, CHANNEL + 2 * WALL - 2, '#7e88c6', 0, true);
     stroke(g, CHANNEL + 6, '#5a5f8c');
