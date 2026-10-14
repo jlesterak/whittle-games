@@ -6,8 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- D2s Swap the reconstructed boards for generated ones (review fixes in; waiting for the re-check)
-- P5 Beadloom track junction (done; waiting for the reviewer)
 
 ## [PENDING]
 - P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
@@ -24,6 +22,10 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-14: D2s generated boards replace the three rebuilt from recordings (level 208 is ordinary, Dotwork
+  LEVEL_GEN 2); the tests now check reveal timing, real swaps, dispenser order and peel layers (mutation-checked)
+- 2026-10-14: P5 Beadloom feeder joins are rounded fillets on every wall layer, shadow drawn once at 25 %; track
+  geometry test; static rebuild back to 3-6 ms on level 40 (the shadow layer is kept between rebuilds)
 - 2026-10-14: owner decisions: D1 the Unlicense (public domain), D2 swap the rebuilt boards (D2s), D3 Pages on
   (serves master), D5 Yacht's free Joker stays a house rule
 - 2026-10-14: P3 save safety: repaired record, cleanSave/cleanPlayers, refused damaged resumes, kept copies

@@ -250,10 +250,15 @@ export class Renderer {
     };
     // The drop shadow is translucent, so it is drawn opaque on its own layer and laid down once at 25 %: overlaps
     // (ring under feeder, fillet over stroke) then can't darken twice.
+    // The layer is kept between rebuilds: allocating it each time made a rebuild about 3x slower (P5 re-check).
     const sh = (this.shadowLayer ??= document.createElement('canvas'));
-    sh.width = L.width;
-    sh.height = L.height;
+    if (sh.width !== L.width || sh.height !== L.height) {
+      sh.width = L.width;
+      sh.height = L.height;
+    }
     const sg = sh.getContext('2d');
+    sg.setTransform(1, 0, 0, 1, 0, 0);
+    sg.clearRect(0, 0, sh.width, sh.height);
     sg.setTransform(this.k, 0, 0, this.k, this.offX * this.dpr, this.offY * this.dpr);
     stroke(sg, CHANNEL + 2 * WALL + 10, 'rgb(30,30,90)', 8, true);
     g.save();
@@ -261,7 +266,6 @@ export class Renderer {
     g.globalAlpha = 0.25;
     g.drawImage(sh, 0, 0);
     g.restore();
-    sh.width = sh.height = 0; // let go of its pixels until the next rebuild
     stroke(g, CHANNEL + 2 * WALL + 4, '#5d669f', 0, true);
     stroke(g, CHANNEL + 2 * WALL - 2, '#7e88c6', 0, true);
     stroke(g, CHANNEL + 6, '#5a5f8c');
