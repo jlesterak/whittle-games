@@ -36,7 +36,7 @@ test('random play conserves beads and never overfills a crate', () => {
     const level = busyLevel();
     const want = totals(level);
     const sim = createSim(level);
-    sim.setSpeed(['slow', 'normal', 'fast'][seed % 3]);
+    sim.setSpeed(['slow', 'normal', 'double', 'fast'][seed % 4]);
     const rng = makeRng(seed);
     const done = {};
     for (let t = 0; t < 60 * 400 && sim.status === 'playing'; t++) {
