@@ -6,10 +6,10 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- R2 CI (workflow added; waiting for the first run on the PR)
+- R2 CI (green on PR #3; waiting for the reviewer)
+- R3 Headless smoke check (tool and CI job added; waiting for CI and the reviewer)
 
 ## [PENDING]
-- R3 Headless smoke check
 - R4 Public game docs
 - P1 Public-ready pass
 - P2 Whole updates, never mixed versions

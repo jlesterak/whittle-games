@@ -99,7 +99,12 @@ Two players sit opposite (red and yellow). Spec and bot win rates: [docs/ludo-sp
 
 ## Testing
 
-- Unit tests: `node --test` (Node 20+). They cover rules, bots, solvers, generators, saves and past bugs.
+- Unit tests: `node --test` (Node 20+). They cover rules, bots, solvers, generators, saves and past bugs, and
+  import every app module so a broken import fails.
+- Headless smoke check: `node tools/smoke.mjs` (Node 22, Chrome or Chromium; see the file header for flags). It
+  opens the shelf and every game at 360x740, 412x915 and 1440x900, lets each play itself, and fails on exceptions,
+  console errors, failed requests, controls cut off at the screen edge or a blank canvas. Screenshots go to
+  `.work/shots/<viewport>/`. CI runs it and keeps the screenshots as a build artifact for a week.
 - `node tools/precache.mjs --check` fails if the list in `sw.js` differs from the files on disk;
   `tests/precache.test.js` checks the same list.
 - URL helpers for checking a game in a browser:
