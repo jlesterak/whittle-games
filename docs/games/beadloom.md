@@ -94,5 +94,7 @@ restarts the level.
 
 ## Known gaps
 
-- PLAN items P4 (6-column boards), P5 (track outline notch) and P6 (clipping on some phones).
+- PLAN items P5 (track outline notch) and P6 (clipping on some phones). 6-column boards were checked in P4 (levels
+  48, 60, 99 at 360x740 and 412x915: crates inside the board, autoplay wins); `tests/beadloom-layout.test.js`
+  guards the layout constants.
 - Not yet recorded from play: a fill-booster use and a lift on a locked crate (PLAN P10).
