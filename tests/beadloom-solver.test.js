@@ -1,15 +1,14 @@
-// Solver and generator: correctness on hand-made levels, the level 2796 fixture, and
-// "every generated level is winnable" across many level numbers.
+// Solver and generator: correctness on hand-made levels, a generated level with swaps and a dispenser checked
+// pick by pick, and "every generated level is winnable" across many level numbers.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { solve as solveG, replay as replayG } from '../engines/slotsort/solver.js';
 import { generateLevel, GAME } from '../games/beadloom/rules.js';
-import { createBoard, applyPick, runDispensers, computeReach, canPick } from '../engines/slotsort/board.js';
+import { createBoard, applyPick, runDispensers, computeReach, canPick, newPickInfo, boardCleared } from '../engines/slotsort/board.js';
 
 const solve = (lvl, o) => solveG(lvl, GAME, o);
 const replay = (lvl, picks, o) => replayG(lvl, picks, GAME, o);
 import { tinyLevel } from './fixtures/tiny.js';
-import { board2796, log2796, level2796 } from './fixtures/level2796.js';
 
 const A = 0;
 const B = 1;
@@ -43,20 +42,27 @@ test('solver respects swap pairs (needs the second pick to land on the right col
   assert.ok(replay(lvl, s.picks, { slots: 2 }).ok);
 });
 
-test('level 2796: the logged picks are legal and take the logged colours under our rules', () => {
-  const b = createBoard(board2796);
+// Level 33 has 8 swap crates and a dispenser: the generator's intended order must be legal on the board alone
+// (exit paths, swaps toggling, the dispenser refilling and vanishing), clear it, and win in the real simulation.
+test('level 33 (swaps + dispenser): the intended order is legal pick by pick, clears the board and wins', () => {
+  const lvl = generateLevel(33);
+  const b = createBoard(lvl.board);
+  assert.ok(b.disps.length >= 1 && lvl.board.cells.filter((c) => c && c.alt !== undefined).length >= 2, 'swaps and a dispenser');
   runDispensers(b, null);
   const reach = new Uint8Array(b.n);
-  for (const [k, [cell, colour]] of log2796.entries()) {
+  let toggles = 0;
+  let ejects = 0;
+  for (const [k, cell] of lvl.meta.solution.entries()) {
     computeReach(b, reach);
     assert.ok(canPick(b, cell, reach), `pick ${k + 1} (cell ${cell}) should be pickable`);
-    assert.equal(applyPick(b, cell, null), colour, `pick ${k + 1} colour`);
+    const info = newPickInfo();
+    applyPick(b, cell, info);
+    if (info.toggled) toggles++;
+    ejects += info.ejects.length;
   }
-});
-
-test('level 2796: logged order and solver solution both win in the simulation', () => {
-  const lvl = level2796();
-  assert.ok(replay(lvl, log2796.map(([cell]) => cell)).ok, 'logged order');
+  assert.ok(toggles > 0 && ejects > 0, 'the swaps toggled and the dispenser refilled along the way');
+  assert.ok(boardCleared(b), 'board and dispenser empty');
+  assert.ok(replay(lvl, lvl.meta.solution).ok, 'intended order wins in the sim');
   const s = solve(lvl, { slots: 4 });
   assert.ok(s.ok, 'solver');
   assert.ok(replay(lvl, s.picks).ok, 'solver order');

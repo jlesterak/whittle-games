@@ -55,8 +55,6 @@ Knobs by level (`knobs(n)`; t = min(1, (n - 1) / 80), from 0 at level 1 to 1 fro
 - **Breathers:** the level after a hard one is 15 % smaller and easier.
 - **Pictures:** from width 11, every 3rd level uses a picture mask, coloured in two tones by rings from the centre.
   Rectangles colour arrows so neighbours differ.
-- **Level 208** is a fixed board (36x45, 163 arrows, 31 peel layers) kept as a regression fixture
-  (`level208.js`). See docs/DECISIONS.md D2.
 
 Colour carries no rule (it only separates neighbouring arrows), so Dotwork has no colourblind glyphs.
 
@@ -76,7 +74,7 @@ on screen. Tips on levels 1 and 2, and a one-time zoom tip on boards drawn small
 
 `ctx.store` blob: `{ level, coins, boosters: { hint, erase, wand, guide }, best: { [level]: stars }, zoomTip,
 inProgress: { level, gen, board: { gone, failed, stars, mistakes }, hint } | null }`. Saved on every move, every
-5 s, on hide and on exit. `LEVEL_GEN` (1) is bumped when the generator changes, so an in-progress save of an older
+5 s, on hide and on exit. `LEVEL_GEN` (2, since level 208 became a generated level) is bumped when the generator changes, so an in-progress save of an older
 board restarts that level instead of loading arrows that no longer exist. A save that does not match its level
 also restarts the level.
 
@@ -85,9 +83,10 @@ also restarts the level.
 - `?level=N#/dotwork` jumps to level N (note: it also sets the saved level).
 - `?autoplay=1` fires free arrows every 0.12 s.
 - `?debug` exposes `window.__po()` -> `{ board, level, save, renderer }`.
-- Unit tests: `tests/dotwork-board.test.js` (level 208 shape and peel, the tap rule, losing and the +1 star
-  continue, save round trip), `tests/dotwork-generator.test.js` (levels 1-60, 80, 150 and 209 winnable and well
-  formed; deterministic; difficulty rises with breathers after hard levels; picture masks; level 208).
+- Unit tests: `tests/dotwork-board.test.js` (a big generated board's shape and peel, the tap rule, losing and the
+  +1 star continue, save round trip), `tests/dotwork-generator.test.js` (levels 1-60, 80, 150 and 209 winnable and
+  well formed; deterministic; difficulty rises with breathers after hard levels; picture masks; level 208 is
+  generated like the rest).
 
 ## Known gaps
 

@@ -9,7 +9,6 @@
 
 import { hashSeed, makeRng } from '../../core/rng.js';
 import { DIRS, peel, rayCells } from './board.js';
-import { level208 } from './level208.js';
 
 export const isHard = (n) => n >= 5 && n % 5 === 0;
 const isBreather = (n) => n > 5 && n % 5 === 1;
@@ -288,11 +287,6 @@ function colour(k, paths, rng, n) {
 const TRIES = 6;
 
 export function generateLevel(n) {
-  if (n === 208) {
-    const l = level208();
-    const p = peel(l);
-    return { ...l, meta: { layers: p.layers.length, free0: p.layers[0].length / l.arrows.length, solution: p.layers.flat() } };
-  }
   const k = knobs(n);
   const mask = makeMask(k);
   let best = null;

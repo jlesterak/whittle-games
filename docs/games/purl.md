@@ -74,7 +74,7 @@ after a generator change.
 - `?autoplay=1` plays the solver's solution.
 - `?debug` exposes `window.__ck()` -> `{ sim, level, save, renderer }`.
 - Unit tests: `tests/purl-sim.test.js` (conservation, threads, dispensers, out of space and Continue, win, scissors
-  and balloons, save mid-thread, fast-forward), `tests/purl-solver.test.js` (solver, the level 254 fixture, board
+  and balloons, save mid-thread, fast-forward), `tests/purl-solver.test.js` (solver, hard level 45's hidden bobbins and dispensers pick by pick, board
   outlines, every generated level winnable, conservation in generated levels).
 
 ## Known gaps

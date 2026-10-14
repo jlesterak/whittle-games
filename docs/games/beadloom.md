@@ -88,7 +88,7 @@ restarts the level.
 - `?autoplay=1` plays the solver's solution (picks when the board is settled and a slot is free).
 - `?debug` exposes `window.__bo()` -> `{ sim, level, save, renderer }`.
 - Unit tests: `tests/beadloom-sim.test.js` (conservation, pickability, swaps, keys, dispensers, out of space,
-  hidden tiles, save round trip, ice), `tests/beadloom-solver.test.js` (solver, swap pairs, the level 2796 fixture,
+  hidden tiles, save round trip, ice), `tests/beadloom-solver.test.js` (solver, swap pairs, level 33's swaps and dispenser pick by pick,
   levels 1-80 and a spread up to 5000 winnable with a full-simulation replay), `tests/beadloom-turbo.test.js`
   (fast-forward never precedes a loss).
 

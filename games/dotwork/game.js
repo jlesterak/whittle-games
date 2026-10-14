@@ -18,7 +18,7 @@ const PRICE = 100; // coins per booster and per "+1 star" (ref 3, 4.3 [G])
 const REWARD = 5; // per star left (ref 3: +5 for a 1-star clear), doubled on hard levels
 const START_BOOSTERS = { hint: 9, erase: 3, wand: 4, guide: 5 }; // ref 4.3
 const WAND_MAX = 10; // ref unknown 4: the batch looked like 8-10 arrows
-const LEVEL_GEN = 1; // bump when the generator changes: an in-progress save restarts its level
+const LEVEL_GEN = 2; // bump when the generator changes: an in-progress save restarts its level (2: level 208 generated)
 const TAP_MS = 350;
 const SLOP = 10; // px a touch may move and still be a tap (ref 4.1)
 

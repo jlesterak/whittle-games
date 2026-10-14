@@ -2,7 +2,6 @@
 // so there are no colourblind glyphs. Index order is the generator's palette order.
 export const ARROW = ['#3475dc', '#ca4e53', '#e2ad12', '#d37013', '#5d6878', '#9a5fd0'];
 export const C = { blue: 0, red: 1, yellow: 2, orange: 3, slate: 4, purple: 5 };
-export const LETTERS = { B: C.blue, R: C.red, Y: C.yellow, O: C.orange };
 
 export const PAL = {
   bg: '#151823',

@@ -41,8 +41,10 @@ Beadloom's special-tile mix (`games/beadloom/rules.js`). The private specs and r
 
 Recommendation: keep them as test fixtures only if the owner is comfortable; otherwise replace each with a
 generated board of the same size and difficulty (the tests only need its shape and stats), and replace Dotwork's
-playable level 208 with a generated level. **Owner, 2026-10-14: "swap for generated boards."** PLAN item D2s. The
-generator targets tuned to recorded levels stay (they are numbers, not boards).
+playable level 208 with a generated level. **Owner, 2026-10-14: "swap for generated boards."** Done in PLAN item
+D2s: the three boards are deleted, level 208 is generated like any other, and the tests that used them now check
+generated levels with the same mix. The generator targets tuned to recorded levels stay (they are numbers, not
+boards).
 
 ## D3. Public hosting (settled 2026-10-14)
 

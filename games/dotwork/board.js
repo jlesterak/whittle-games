@@ -33,8 +33,8 @@ export function rayCells(W, H, cells, dir = headDir(W, cells)) {
   return out;
 }
 
-// Ref section 7 format: "<colour><tailX>,<tailY>:<moves>" tokens, moves run-length from the
-// tail ("3U" = 3 cells up). colours maps the letter to a palette index.
+// A compact text format for hand-made boards (tests): "<colour><tailX>,<tailY>:<moves>" tokens, moves run-length
+// from the tail ("3U" = 3 cells up). colours maps the letter to a palette index.
 export function parseArrows(text, W, colours) {
   return text
     .trim()

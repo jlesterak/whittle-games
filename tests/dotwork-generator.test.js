@@ -1,5 +1,5 @@
 // Dotwork generator: every level is winnable, well formed and deterministic; difficulty
-// rises; picture masks and the real level 208 show up where expected.
+// rises; picture masks show up where expected; level 208 is generated like any other.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { generateLevel, knobs, isHard } from '../games/dotwork/generator.js';
@@ -35,14 +35,14 @@ test('levels are deterministic, and difficulty rises with breathers after hard l
   assert.ok(knobs(11).W < knobs(10).W, 'a smaller breather follows a hard level');
 });
 
-test('picture masks: some boards are not rectangles; level 208 is the recorded board', () => {
+test('picture masks: some boards are not rectangles; level 208 is an ordinary generated level', () => {
   const shaped = LEVELS.filter((n) => knobs(n).shape !== 'rect');
   assert.ok(shaped.length >= 8);
   const l = generateLevel(shaped[3]);
   const filled = l.arrows.reduce((s, a) => s + a.cells.length, 0) / (l.W * l.H);
   assert.ok(filled < 0.8, `a picture leaves its corners empty (${filled.toFixed(2)})`);
   const l208 = generateLevel(208);
-  assert.equal(l208.arrows.length, 163);
-  assert.equal(l208.meta.layers, 31);
-  assert.ok(l208.hard);
+  assert.equal(l208.n, 208);
+  assert.equal(l208.W, knobs(208).W, 'sized by the knobs, not a stored board');
+  assert.ok(Number.isInteger(l208.meta.seed), 'built from a seed');
 });

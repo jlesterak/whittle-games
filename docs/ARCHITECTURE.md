@@ -88,7 +88,7 @@ of game and only shares `core/`. Rules and details: [beadloom.md](games/beadloom
 `games/dotwork/`: `board.js` (the ray-cast tap rule, stars, eraser, save/restore and the greedy
 peel solver: a level is winnable iff peeling free arrows empties it), `generator.js` (snake partition
 of a rectangle or picture mask, oriented by forward peeling so every level is winnable by
-construction; knobs per level, hard every 5th), `level208.js` (the recorded level), `render.js` (the
+construction; knobs per level, hard every 5th), `render.js` (the
 pan/zoom camera and all animations), `game.js` (HUD, four boosters, end screens, input: tap on
 release, drag pans, pinch / wheel zoom, double-tap on empty space toggles fit and 2x). Rules and details: [dotwork.md](games/dotwork.md).
 
@@ -127,7 +127,7 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
   `?autoplay=1` plays the solver's solution, `?debug` exposes `window.__bo()` (sim, level, save).
   Purl takes the same `?level=N`, `?autoplay=1` and `?debug` (`window.__ck()`), e.g.
   `?debug&level=25#/purl`. Dotwork takes `?level=N`, `?autoplay=1` (fires free arrows) and
-  `?debug` (`window.__po()`); level 208 is the board reconstructed from the recording.
+  `?debug` (`window.__po()`).
   Yacht takes `?autoplay` (human seats are played by the Hard bot at Fast speed) and `?debug` (`window.__yz()`).
   Ludo takes the same `?autoplay` and `?debug` (`window.__ludo()`).
 
