@@ -59,7 +59,7 @@ export default {
     const coinText = el('span');
     const coins = el('div', { class: 'ck-coins' }, el('i', { html: ICONS.coin }), coinText);
     const modeTip = el('div', { class: 'ck-tip' });
-    const intro = el('div', { class: 'ck-intro' }, el('i', { html: ICONS.skull }), el('b', {}, 'HARD LEVEL'));
+    const intro = el('div', { class: 'ck-intro', 'data-over-level': '' }, el('i', { html: ICONS.skull }), el('b', {}, 'HARD LEVEL'));
     const turboBadge = el('div', { class: 'ck-turbo', 'aria-hidden': 'true' }, '»');
     const boosterBtns = {};
     const badges = {};

@@ -12,7 +12,7 @@ import { makeSounds } from './sounds.js';
 
 const DW = 1080;
 const MIN_H = 1760; // design height that must always fit: HUD + end screens + boosters
-const HUD_BOTTOM = 200;
+const TIP_BOTTOM = 290; // .po-tip: one line at top 230; the board stays below it
 const BOOST_TOP = 240; // from the bottom of the stage
 const PRICE = 100; // coins per booster and per "+1 star" (ref 3, 4.3 [G])
 const REWARD = 5; // per star left (ref 3: +5 for a 1-star clear), doubled on hard levels
@@ -68,7 +68,7 @@ export default {
     root.append(canvas, stage, el('style', {}, CSS));
     const renderer = new Renderer(canvas);
 
-    const hardTab = el('div', { class: 'po-hard' }, 'HARD LEVEL');
+    const hardTab = el('div', { class: 'po-hard', 'data-tab': '' }, 'HARD LEVEL');
     const lvlText = el('div', { class: 'po-lvl' });
     const starEls = [0, 1, 2].map(() => el('i', { class: 'po-star', html: ICONS.star }));
     const barFill = el('i');
@@ -102,7 +102,7 @@ export default {
         return tiles[k];
       }),
     );
-    const splash = el('div', { class: 'po-splash' }, el('i', { html: ICONS.mascot }), el('b', {}, 'HARD LEVEL'));
+    const splash = el('div', { class: 'po-splash', 'data-over-level': '' }, el('i', { html: ICONS.mascot }), el('b', {}, 'HARD LEVEL'));
     stage.append(hud, banner, tip, row, splash);
 
     // ---- state ----
@@ -172,7 +172,7 @@ export default {
       const sh = h / f.scale;
       stage.style.height = `${sh}px`;
       stage.style.transform = `translate(${f.offX}px, 0) scale(${f.scale})`;
-      const top = (HUD_BOTTOM + 24) * f.scale;
+      const top = (TIP_BOTTOM + 12) * f.scale;
       const bottom = h - (BOOST_TOP + 16) * f.scale;
       renderer.resize(w, h, Math.min(globalThis.devicePixelRatio || 1, 2), { x: 12, y: top, w: w - 24, h: bottom - top });
     }

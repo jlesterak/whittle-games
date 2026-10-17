@@ -116,6 +116,25 @@ export class Renderer {
     this.staticDirty = true;
   }
 
+  // What the level puts on screen, as boxes in CSS px within the canvas (smoke --sweep checks they stay inside).
+  bounds() {
+    const css = (name, x0, y0, x1, y1) => ({ name, x0: this.offX + x0 * this.scale, y0: this.offY + y0 * this.scale, x1: this.offX + x1 * this.scale, y1: this.offY + y1 * this.scale });
+    const x0 = this.knitX0;
+    const kw = this.C * BLOCK_W;
+    const b = this.sim.board;
+    const [cx0, cy0] = this.cellXY(0);
+    const [cx1, cy1] = this.cellXY(b.cols * b.rows - 1);
+    const sw = SLOT_W * Math.min(1, this.slotPitch() / 137.5);
+    const K = this.sim.slots.length;
+    return [
+      { ...css('frame', x0 - 64, FRAME_TOP, x0 + kw + 64, FRAME_BOTTOM + 14), hudOk: true }, // wide frames run under the side HUD
+      css('picture', x0, KNIT_TOP, x0 + kw, PIC_BOTTOM),
+      css('hooks', this.laneX(this.C) - 20, HOOK_Y - 62, this.laneX(this.C + 1) + 20, HOOK_Y),
+      css('slots', this.slotX(0) - sw / 2, BOB_Y - BOB_H / 2 - 6, this.slotX(K - 1) + sw / 2, SLOT_Y + SLOT_H / 2 + 6),
+      css('board', cx0 - BOB_W / 2 - 20, cy0 - BOB_H / 2, cx1 + BOB_W / 2 + 20, cy1 + BOB_H / 2),
+    ];
+  }
+
   toDesign(cx, cy, rect) {
     return [(cx - rect.left - this.offX) / this.scale, (cy - rect.top - this.offY) / this.scale];
   }

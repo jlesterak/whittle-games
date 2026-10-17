@@ -7,6 +7,8 @@
 //   node tools/smoke.mjs --game beadloom --params "level=40" --wait 8
 //   node tools/smoke.mjs --sw                     offline start and a whole update, on a temporary copy
 //   node tools/smoke.mjs --saves                  every game over broken and odd saves
+//   node tools/smoke.mjs --sweep                  Beadloom, Purl, Dotwork over many levels and phone sizes: the
+//                                                 drawn level must stay on the stage, the HUD on screen and apart
 //
 // Flags: --game id[,id] (shelf counts as a game), --viewport WxH[,WxH], --params "a=1&b=2" (added to the
 // URL; autoplay=1 unless --no-autoplay), --wait seconds after load (default 5), --out dir, --jobs n,
@@ -474,6 +476,111 @@ async function mountFailCheck(browser, base) {
   return [...errors.filter((e) => !e.includes('mount-fail check')), ...problems];
 }
 
+// --sweep: each renderer reports boxes for what the level drew (renderer.bounds(), CSS px in the canvas). They
+// must stay inside the canvas (or the box's own `inside` area), and the HUD (the game's DOM controls and labels)
+// must stay on screen, apart from each other and off the drawn level. Splashes meant to cover the level for a
+// moment carry data-over-level; a tab drawn onto another HUD element on purpose carries data-tab. Writes a contact sheet to <out>/index.html.
+export const SWEEP = {
+  games: { beadloom: '__bo', purl: '__ck', dotwork: '__po' },
+  levels: [1, 2, 5, 10, 11, 20, 22, 25, 30, 40, 50, 55, 60],
+  extra: { dotwork: [80, 208] },
+  viewports: ['360x740', '384x693', '384x780', '412x915', '915x412'],
+};
+
+const SWEEP_CHECK = (hook) => `(() => {
+  const problems = [];
+  const canvas = document.querySelector('.game-root canvas');
+  const r = window.${hook}?.().renderer;
+  if (!canvas || !r?.bounds) return ['no renderer bounds (debug hook ${hook})'];
+  const c = canvas.getBoundingClientRect();
+  const boxes = r.bounds();
+  const px = (v) => Math.round(v);
+  for (const b of boxes) {
+    const a = b.inside || { x0: 0, y0: 0, x1: c.width, y1: c.height };
+    const over = { left: a.x0 - b.x0, top: a.y0 - b.y0, right: b.x1 - a.x1, bottom: b.y1 - a.y1 };
+    for (const [edge, d] of Object.entries(over)) if (d > 1) problems.push(b.name + ' cut off at the ' + edge + ' by ' + px(d) + ' px');
+  }
+  const vw = innerWidth, vh = innerHeight;
+  const seen = (el) => {
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || el.closest('[hidden]')) return false;
+    for (let a = el; a; a = a.parentElement) if (+getComputedStyle(a).opacity < 0.05) return false;
+    const q = el.getBoundingClientRect();
+    return q.width >= 1 && q.height >= 1;
+  };
+  const name = (el) => (el.getAttribute('aria-label') || el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 24) || el.className || el.tagName).toString();
+  const root = document.querySelector('.game-root');
+  const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output')]
+    .filter((el) => !el.closest('.modal, dialog, [role=dialog]') && seen(el) && (el.matches('button, [role=button]') || [...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())))
+    .filter((el) => !el.parentElement.closest('button, [role=button]'));
+  const rects = hud.map((el) => [el, el.getBoundingClientRect()]);
+  for (const [el, q] of rects) {
+    if (q.left < -1 || q.top < -1 || q.right > vw + 1 || q.bottom > vh + 1) problems.push('HUD "' + name(el) + '" off screen at ' + px(q.left) + ',' + px(q.top));
+  }
+  const cut = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const [ea, a] = rects[i], [eb, b] = rects[j];
+    if (ea.contains(eb) || eb.contains(ea) || ea.closest('[data-tab]') || eb.closest('[data-tab]')) continue;
+    if (cut(a, b)) problems.push('HUD "' + name(ea) + '" overlaps "' + name(eb) + '"');
+  }
+  for (const b of boxes) {
+    if (b.hudOk) continue; // the HUD may sit over this part (it must still stay on the stage)
+    const box = { left: c.left + b.x0, top: c.top + b.y0, right: c.left + b.x1, bottom: c.top + b.y1 };
+    for (const [el, q] of rects) if (!el.closest('[data-over-level]') && cut(q, box)) problems.push('HUD "' + name(el) + '" covers the ' + b.name);
+  }
+  return problems;
+})()`;
+
+async function sweepCheck(browser, base, out, jobs, only) {
+  const queue = [];
+  for (const vp of SWEEP.viewports)
+    for (const [id, hook] of Object.entries(SWEEP.games))
+      if (!only || only.includes(id)) for (const level of [...SWEEP.levels, ...(SWEEP.extra[id] || [])]) queue.push({ vp, id, hook, level });
+  const results = [];
+  const one = async ({ vp, id, hook, level }) => {
+    const dev = device(vp);
+    const page = await browser.newPage(dev);
+    const errors = watchErrors(page);
+    const problems = [];
+    const file = `${vp}/${id}-${level}.png`;
+    mkdirSync(join(out, vp), { recursive: true });
+    try {
+      await page.goto(`${base}?debug&level=${level}#/${id}`);
+      let ok = false;
+      for (let t = 0; t < 8000 && !ok; t += 300) {
+        await sleep(300);
+        ok = await page.eval(`!!window.${hook}?.().renderer?.level && (${MOUNTED})`);
+      }
+      if (!ok) problems.push('game never mounted');
+      // entrance animations settle and any splash over the level goes away (up to 6 s)
+      const SPLASH = `[...document.querySelectorAll('[data-over-level]')].some((el) => el.isConnected && getComputedStyle(el).display !== 'none' && (+getComputedStyle(el).opacity > 0.05 || el.getAnimations().some((a) => a.playState === 'running')))`;
+      await sleep(1000); // a splash may start a moment after the level
+      for (let t = 0; t < 6000 && (await page.eval(SPLASH)); t += 300) await sleep(300);
+      if (await page.eval(SPLASH)) problems.push('a splash still covers the level after 7 s');
+      await sleep(700);
+      problems.push(...(await page.eval(SWEEP_CHECK(hook))));
+      await page.screenshot(join(out, file), { scale: 1 / dev.dpr });
+    } catch (e) {
+      problems.push(`smoke: ${e.message}`);
+    } finally {
+      await page.close();
+    }
+    results.push({ vp, id, level, file, problems: [...errors, ...problems] });
+  };
+  await Promise.all(Array.from({ length: jobs }, async () => {
+    for (let job; (job = queue.shift()); ) await one(job);
+  }));
+  const order = (r) => [SWEEP.viewports.indexOf(r.vp), Object.keys(SWEEP.games).indexOf(r.id), r.level];
+  results.sort((a, b) => { const x = order(a), y = order(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
+  const esc = (t) => t.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
+  const cells = results.map((r) => `<figure class="${r.problems.length ? 'bad' : ''}"><a href="${r.file}"><img src="${r.file}" loading="lazy"></a>` +
+    `<figcaption>${r.vp} ${r.id} ${r.level}${r.problems.map((p) => `<br>${esc(p)}`).join('')}</figcaption></figure>`);
+  writeFileSync(join(out, 'index.html'), `<!doctype html><meta charset="utf-8"><title>sweep</title><style>
+body{font:12px system-ui;margin:8px;background:#222;color:#ddd}figure{display:inline-block;margin:4px;vertical-align:top;width:200px}
+img{width:100%;border:2px solid #444}.bad img{border-color:#e33}.bad figcaption{color:#f88}</style>${cells.join('\n')}\n`);
+  return results;
+}
+
 function num(flag, v, min) {
   const n = Number(v);
   if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
@@ -481,7 +588,7 @@ function num(flag, v, min) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false };
+  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false, sweep: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -495,6 +602,7 @@ function parseArgs(argv) {
     else if (a === '--hires') opts.hires = true;
     else if (a === '--sw') opts.sw = true;
     else if (a === '--saves') opts.saves = true;
+    else if (a === '--sweep') opts.sweep = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
   const known = ['shelf', ...games.map((g) => g.id)];
@@ -528,6 +636,17 @@ async function main() {
     const failed = await savesCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
     console.log(`${failed ? `${failed} save case(s) failed` : 'all save cases ok'} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     process.exit(failed ? 1 : 0);
+  }
+  if (opts.sweep) {
+    const only = opts.games.length === games.length + 1 ? null : opts.games;
+    const results = await sweepCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
+    const bad = results.filter((r) => r.problems.length);
+    for (const r of bad) {
+      console.log(`FAIL ${r.vp.padEnd(9)} ${r.id} ${r.level}`);
+      for (const p of r.problems) console.log(`       ${p}`);
+    }
+    console.log(`${bad.length ? `${bad.length} of ${results.length} shot(s) failed` : `all ${results.length} shots ok`} in ${((Date.now() - t0) / 1000).toFixed(1)} s; contact sheet ${join(opts.out, 'index.html')}`);
+    process.exit(bad.length ? 1 : 0);
   }
   const queue = opts.viewports.flatMap((vp) => opts.games.map((id) => ({ ...opts, id, vp })));
   let failed = 0;
