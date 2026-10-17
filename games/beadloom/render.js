@@ -168,18 +168,22 @@ export class Renderer {
     const css = (name, x0, y0, x1, y1) => ({ name, x0: this.offX + x0 * this.scale, y0: this.offY + y0 * this.scale, x1: this.offX + x1 * this.scale, y1: this.offY + y1 * this.scale });
     const half = (CHANNEL + 2 * WALL + 10) / 2; // the widest track layer (its shadow)
     const out = [];
+    // one box per short stretch of track, so a box hugs the curve instead of the whole arm's corner
     for (const [name, p] of [['ring', this.track.ring], ['left arm', this.track.feeders[1]], ['right arm', this.track.feeders[0]]]) {
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      for (let i = 0; i < p.count; i++) {
-        x0 = Math.min(x0, p.xs[i]); x1 = Math.max(x1, p.xs[i]);
-        y0 = Math.min(y0, p.ys[i]); y1 = Math.max(y1, p.ys[i]);
+      for (let s = 0; s < p.count; s += 40) {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (let i = s; i < Math.min(p.count, s + 41); i++) {
+          x0 = Math.min(x0, p.xs[i]); x1 = Math.max(x1, p.xs[i]);
+          y0 = Math.min(y0, p.ys[i]); y1 = Math.max(y1, p.ys[i]);
+        }
+        out.push(css(name, x0 - half, y0 - half, x1 + half, y1 + half + 10)); // the shadow sits 10 px lower
       }
-      out.push(css(name, x0 - half, y0 - half, x1 + half, y1 + half + 10)); // the shadow sits 10 px lower
     }
     const b = this.sim.board;
     const [bx0, by0] = [LAYOUT.colX(0, b.cols), LAYOUT.rowY(0, b.rows)];
     const [bx1, by1] = [LAYOUT.colX(b.cols - 1, b.cols), LAYOUT.rowY(b.rows - 1, b.rows)];
-    out.push(css('crates', bx0 - CRATE_W / 2, by0 - CRATE_H / 2 - 12, bx1 + CRATE_W / 2, by1 + CRATE_H / 2));
+    const B = CELL_BOX; // the rails drawn round the board
+    out.push(css('crates', bx0 - B.left - RAIL_PAD, by0 - B.up - RAIL_PAD, bx1 + B.right + RAIL_PAD, by1 + B.down + RAIL_PAD));
     const K = this.sim.slots.length;
     out.push(css('slots', LAYOUT.slotX(0, K) - SLOT_W / 2, LAYOUT.slotY - SLOT_H / 2, LAYOUT.slotX(K - 1, K) + SLOT_W / 2, LAYOUT.slotY + SLOT_H / 2));
     return out;

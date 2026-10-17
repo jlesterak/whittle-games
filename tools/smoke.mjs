@@ -510,17 +510,28 @@ const SWEEP_CHECK = (hook) => `(() => {
   };
   const name = (el) => (el.getAttribute('aria-label') || el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 24) || el.className || el.tagName).toString();
   const root = document.querySelector('.game-root');
-  const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output')]
-    .filter((el) => !el.closest('.modal, dialog, [role=dialog]') && seen(el) && (el.matches('button, [role=button]') || [...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())))
-    .filter((el) => !el.parentElement.closest('button, [role=button]'));
+  // HUD items: controls, anything holding text, icons, and positioned boxes (pills, bars) smaller than half the screen.
+  const item = (el) => {
+    if (el.matches('button, [role=button], i, svg')) return true;
+    if ([...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) return true;
+    if (!/absolute|fixed/.test(getComputedStyle(el).position)) return false;
+    const q = el.getBoundingClientRect();
+    return q.width * q.height < vw * vh / 2;
+  };
+  const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output, i, svg')]
+    .filter((el) => el.parentElement !== root && !el.closest('.modal, dialog, [role=dialog]') && !el.parentElement.closest('button, [role=button], i, svg') && seen(el) && item(el));
   const rects = hud.map((el) => [el, el.getBoundingClientRect()]);
+  // parts of one badge (an icon and its label inside the same pill) may overlap each other
+  const owner = (el) => { for (let a = el.parentElement; a && a !== root; a = a.parentElement) if (hud.includes(a)) return a; return null; };
   for (const [el, q] of rects) {
     if (q.left < -1 || q.top < -1 || q.right > vw + 1 || q.bottom > vh + 1) problems.push('HUD "' + name(el) + '" off screen at ' + px(q.left) + ',' + px(q.top));
   }
   const cut = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const [ea, a] = rects[i], [eb, b] = rects[j];
-    if (ea.contains(eb) || eb.contains(ea) || ea.closest('[data-tab]') || eb.closest('[data-tab]')) continue;
+    if (ea.contains(eb) || eb.contains(ea) || (owner(ea) && owner(ea) === owner(eb))) continue;
+    const tab = ea.closest('[data-tab]') || eb.closest('[data-tab]'); // a tab may sit on its own bar, not elsewhere
+    if (tab && ea.closest('[data-tab]') !== eb.closest('[data-tab]') && tab.parentElement.contains(ea) && tab.parentElement.contains(eb)) continue;
     if (cut(a, b)) problems.push('HUD "' + name(ea) + '" overlaps "' + name(eb) + '"');
   }
   for (const b of boxes) {
