@@ -68,7 +68,7 @@ export default {
     root.append(canvas, stage, el('style', {}, CSS));
     const renderer = new Renderer(canvas);
 
-    const hardTab = el('div', { class: 'po-hard', 'data-tab': '' }, 'HARD LEVEL');
+    const hardTab = el('div', { class: 'po-hard' }, 'HARD LEVEL');
     const lvlText = el('div', { class: 'po-lvl' });
     const starEls = [0, 1, 2].map(() => el('i', { class: 'po-star', html: ICONS.star }));
     const barFill = el('i');

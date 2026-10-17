@@ -479,7 +479,7 @@ async function mountFailCheck(browser, base) {
 // --sweep: each renderer reports boxes for what the level drew (renderer.bounds(), CSS px in the canvas). They
 // must stay inside the canvas (or the box's own `inside` area), and the HUD (the game's DOM controls and labels)
 // must stay on screen, apart from each other and off the drawn level. Splashes meant to cover the level for a
-// moment carry data-over-level; a tab drawn onto another HUD element on purpose carries data-tab. Writes a contact sheet to <out>/index.html.
+// moment carry data-over-level. Writes a contact sheet to <out>/index.html.
 export const SWEEP = {
   games: { beadloom: '__bo', purl: '__ck', dotwork: '__po' },
   levels: [1, 2, 5, 10, 11, 20, 22, 25, 30, 40, 50, 55, 60],
@@ -520,8 +520,11 @@ const SWEEP_CHECK = (hook) => `(() => {
   };
   const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output, i, svg')]
     .filter((el) => el.parentElement !== root && !el.closest('.modal, dialog, [role=dialog]') && !el.parentElement.closest('button, [role=button], i, svg') && seen(el) && item(el));
-  const rects = hud.map((el) => [el, el.getBoundingClientRect()]);
-  // parts of one badge (an icon and its label inside the same pill) may overlap each other
+  // text is measured by its glyphs (a Range), not its line box: a 150 px line-height label is only as tall as its text
+  const textOnly = (el) => !el.matches('button, [role=button], i, svg') && !el.children.length && el.textContent.trim();
+  const box = (el) => { if (!textOnly(el)) return el.getBoundingClientRect(); const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); };
+  const rects = hud.map((el) => [el, box(el)]);
+  // an icon and its label inside the same pill (a badge) may overlap; nothing else in a shared bar may
   const owner = (el) => { for (let a = el.parentElement; a && a !== root; a = a.parentElement) if (hud.includes(a)) return a; return null; };
   for (const [el, q] of rects) {
     if (q.left < -1 || q.top < -1 || q.right > vw + 1 || q.bottom > vh + 1) problems.push('HUD "' + name(el) + '" off screen at ' + px(q.left) + ',' + px(q.top));
@@ -529,9 +532,8 @@ const SWEEP_CHECK = (hook) => `(() => {
   const cut = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const [ea, a] = rects[i], [eb, b] = rects[j];
-    if (ea.contains(eb) || eb.contains(ea) || (owner(ea) && owner(ea) === owner(eb))) continue;
-    const tab = ea.closest('[data-tab]') || eb.closest('[data-tab]'); // a tab may sit on its own bar, not elsewhere
-    if (tab && ea.closest('[data-tab]') !== eb.closest('[data-tab]') && tab.parentElement.contains(ea) && tab.parentElement.contains(eb)) continue;
+    if (ea.contains(eb) || eb.contains(ea)) continue;
+    if (owner(ea) && owner(ea) === owner(eb) && (ea.matches('i, svg') || eb.matches('i, svg'))) continue;
     if (cut(a, b)) problems.push('HUD "' + name(ea) + '" overlaps "' + name(eb) + '"');
   }
   for (const b of boxes) {
@@ -542,9 +544,9 @@ const SWEEP_CHECK = (hook) => `(() => {
   return problems;
 })()`;
 
-async function sweepCheck(browser, base, out, jobs, only) {
+async function sweepCheck(browser, base, out, jobs, only, viewports = SWEEP.viewports) {
   const queue = [];
-  for (const vp of SWEEP.viewports)
+  for (const vp of viewports)
     for (const [id, hook] of Object.entries(SWEEP.games))
       if (!only || only.includes(id)) for (const level of [...SWEEP.levels, ...(SWEEP.extra[id] || [])]) queue.push({ vp, id, hook, level });
   const results = [];
@@ -581,7 +583,7 @@ async function sweepCheck(browser, base, out, jobs, only) {
   await Promise.all(Array.from({ length: jobs }, async () => {
     for (let job; (job = queue.shift()); ) await one(job);
   }));
-  const order = (r) => [SWEEP.viewports.indexOf(r.vp), Object.keys(SWEEP.games).indexOf(r.id), r.level];
+  const order = (r) => [viewports.indexOf(r.vp), Object.keys(SWEEP.games).indexOf(r.id), r.level];
   results.sort((a, b) => { const x = order(a), y = order(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
   const esc = (t) => t.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
   const cells = results.map((r) => `<figure class="${r.problems.length ? 'bad' : ''}"><a href="${r.file}"><img src="${r.file}" loading="lazy"></a>` +
@@ -604,7 +606,7 @@ function parseArgs(argv) {
     const a = argv[i];
     const next = () => argv[++i];
     if (a === '--game') opts.games = next().split(',');
-    else if (a === '--viewport') opts.viewports = next().split(',');
+    else if (a === '--viewport') opts.viewports = opts.vpGiven = next().split(',');
     else if (a === '--params') opts.params = next();
     else if (a === '--no-autoplay') opts.autoplay = false;
     else if (a === '--wait') opts.wait = num(a, next(), 0);
@@ -650,7 +652,7 @@ async function main() {
   }
   if (opts.sweep) {
     const only = opts.games.length === games.length + 1 ? null : opts.games;
-    const results = await sweepCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
+    const results = await sweepCheck(browser, url, opts.out, opts.jobs, only, opts.vpGiven).finally(() => (browser.close(), server.close()));
     const bad = results.filter((r) => r.problems.length);
     for (const r of bad) {
       console.log(`FAIL ${r.vp.padEnd(9)} ${r.id} ${r.level}`);
