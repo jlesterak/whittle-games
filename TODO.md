@@ -6,9 +6,9 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
+- P6 Layout sweep: smoke --sweep (bounds + HUD overlap + contact sheet), then fix what it finds
 
 ## [PENDING]
-- P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
 - P6h [HUMAN] Check clipping on the phone
 - P7 Frame-rate budget
 - P8 Accessibility and input basics
