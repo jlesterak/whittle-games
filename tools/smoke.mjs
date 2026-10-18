@@ -657,6 +657,7 @@ async function perfCheck(browser, base, only) {
 // control; the Settings button opens its dialog with Enter and with Space, the dialog takes focus, and Escape closes it
 // and puts focus back. On a phone page, each game plays itself for a moment, then the back gesture (history.back())
 // goes to the shelf and forward reopens it (with frames and timers stopped): the game must be in exactly the state it was in.
+const KEYBOARD_ROLL = { yacht: ['Roll'], ludo: ['Roll the die'] };
 const HOOKS = { beadloom: '__bo', purl: '__ck', dotwork: '__po', ludo: '__ludo', yacht: '__yz' };
 // slotsort's load() counts a full slot as completed (engines/slotsort/sim.js), so the digest does the same
 const SLOTS = (h) => `(() => { const d = window.${h}().sim.serialize(); const cap = window.${h}().sim.cap;
@@ -705,6 +706,13 @@ async function a11yOne(browser, base, id) {
       if (at) await page.tap(at.x, at.y);
       await sleep(400);
     }
+    // roll once where the game has dice, so the controls that only exist after a roll (score boxes, movable tokens)
+    // are checked too
+    for (const label of KEYBOARD_ROLL[id] || []) {
+      const at = await findButton(page, label);
+      if (at) await page.tap(at.x, at.y);
+      await sleep(1500);
+    }
     await sleep(800);
     problems.push(...(await page.eval(LABELS_CHECK)));
     // Tab: every control gets focus at least once going forward
@@ -735,6 +743,14 @@ async function a11yOne(browser, base, id) {
       if (after[0]) problems.push('Escape did not close the Settings dialog');
       else if (after[1] !== 'Settings') problems.push(`focus did not return to Settings after Escape (it is on ${after[1]})`);
     }
+    // a control that isn't a real <button> must answer Enter like one: the page changes after the key
+    const custom = await page.eval(`(() => { const b = [...document.querySelectorAll('[role=button]:not(button)')].find((x) => x.tabIndex >= 0 && x.getBoundingClientRect().width > 0 && !x.closest('[role=dialog]')); if (!b) return null;
+      window.__changed = 0; new MutationObserver(() => window.__changed++).observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true }); b.focus(); return b.getAttribute('aria-label') || b.textContent.trim(); })()`);
+    if (custom !== null) {
+      await page.key('Enter');
+      await sleep(400);
+      if (!(await page.eval(`window.__changed`))) problems.push(`Enter on "${custom}" did nothing`);
+    }
   } catch (e) {
     problems.push(`smoke: ${e.message}`);
   } finally {
@@ -764,6 +780,7 @@ async function resumeOne(browser, base, id) {
     const start = await page.eval(DIGEST[id](hook)).catch(() => '');
     for (let t = 0; t < 8000 && (await page.eval(DIGEST[id](hook)).catch(() => '')) === start; t += 150) await sleep(150);
     await sleep(300);
+    if ((await page.eval(DIGEST[id](hook)).catch(() => '')) === start) problems.push('the game never changed, so resume was not tested');
     await page.eval(`window.__before = window.${hook}; history.back()`);
     await sleep(800);
     if ((await page.eval(`document.body.dataset.view`)) !== 'shelf') problems.push('back did not return to the shelf');

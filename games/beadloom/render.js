@@ -490,7 +490,9 @@ export class Renderer {
     for (let i = 0; i < b.n; i++) {
       if (b.kind[i] === NOCELL) continue;
       const [cx, cy] = this.cellXY(i);
-      if (Math.abs(x - cx) < CRATE_W / 2 && y > cy - 72 && y < cy + 72) return i; // the whole drawn crate (±74: 44 CSS px at 360)
+      // the drawn crate plus a margin, short of the neighbours (pitch 162 on 6 columns, rows 166): ±80 x ±82 design px
+      // is at least 44 CSS px on every phone size checked (384x693 is the narrowest scale)
+      if (Math.abs(x - cx) < 80 && Math.abs(y - cy) < 82) return i;
     }
     return -1;
   }
