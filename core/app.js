@@ -7,6 +7,7 @@ import * as save from './save.js';
 import { audio } from './audio.js';
 import { haptics } from './haptics.js';
 import { el, modal, toast, switchRow, choiceRow } from './ui.js';
+import { startFpsMeter } from './fps.js';
 
 const app = document.getElementById('app');
 let current = null; // { meta, game, instance }
@@ -236,6 +237,7 @@ applyMotion();
 window.addEventListener('pointerdown', () => audio.unlock(), { once: true, capture: true });
 window.addEventListener('hashchange', route);
 route();
+if (new URLSearchParams(location.search).has('fps')) startFpsMeter(); // frame-rate overlay for phone checks (P7b)
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {

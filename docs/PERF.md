@@ -67,3 +67,10 @@ its GPU:
 So these numbers are a pessimistic bound, not a phone measurement. They do rank the games: Beadloom is the heaviest
 (it is also the only one under 50 fps without throttling, at DPR 3), then Dotwork, then Purl. Fix item P7b in
 PLAN.md tracks them.
+
+## On the phone
+
+Add `?fps` to any URL (for example `?fps&autoplay=1&level=60#/beadloom`) for a small overlay at the middle of the
+left edge: median fps over the last 2 s and the slow end ("slow 5%": 1000 / the 95th percentile frame interval).
+It uses the same `frameStats` as `--perf` (`core/fps.js`), so the numbers compare directly. The fixes in P7b wait for
+these phone numbers (P7bh).

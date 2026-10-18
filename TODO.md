@@ -6,11 +6,12 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P7b Frame rate on the phone: ?fps overlay first (the fixes wait for P7bh's phone numbers)
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
-- P7bh [HUMAN] Read the frame rate on the phone (needs P7b's overlay)
+- P7b [BLOCKED: needs P7bh phone numbers] ?fps overlay done (core/fps.js, shared with --perf); fixes wait for the phone
+- P7bh [HUMAN] Read the frame rate on the phone: open `?fps&autoplay=1&level=60#/beadloom`, `#/purl` and
+  `?fps&autoplay=1&level=208#/dotwork`, write median / slow-5% numbers in the Inbox
 - P8 Accessibility and input basics
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate

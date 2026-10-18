@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { launch } from './cdp.mjs';
 import { render, TOP, DIRS } from './precache.mjs';
 import { games } from '../games/index.js';
+import { frameStats } from '../core/fps.js';
 
 const ROOT = join(fileURLToPath(import.meta.url), '../..');
 
@@ -637,10 +638,10 @@ async function perfCheck(browser, base, only) {
       await page.goto(`${base}?autoplay=1&level=${level}#/${id}`);
       await sleep(4000); // mount, splash, first moves
       const { t, js } = await page.eval(FRAMES(PERF.seconds * 1000));
-      const d = t.slice(1).map((v, i) => v - t[i]).sort((a, b) => a - b);
+      const d = t.slice(1).map((v, i) => v - t[i]);
       const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
       js.sort((a, b) => a - b);
-      results.push({ id, level, frames: d.length, median: 1000 / q(d, 0.5), p95: 1000 / q(d, 0.95), worst: d[d.length - 1], js: q(js, 0.5), js95: q(js, 0.95), errors });
+      results.push({ id, level, frames: d.length, ...frameStats(d), worst: Math.max(...d), js: q(js, 0.5), js95: q(js, 0.95), errors });
     } catch (e) {
       results.push({ id, level, frames: 0, median: 0, p95: 0, worst: 0, js: 0, js95: 0, errors: [...errors, `smoke: ${e.message}`] });
     } finally {
