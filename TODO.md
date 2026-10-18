@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P7 Frame-rate budget: smoke --perf and docs/PERF.md written, fix item P7b added; fresh verifier pending
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -23,6 +22,9 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-18: P7 frame-rate budget: smoke --perf (4x throttle, DPR 3, 10 s autoplay, rAF intervals + script ms),
+  docs/PERF.md. All five heavy levels are under 50 fps here (7.5-20 fps), mostly software raster with no GPU, so
+  fix item P7b (phone fps overlay, then targeted fixes) holds the numbers. Fresh verifier PASS
 - 2026-10-18: P6 layout sweep: smoke --sweep (3 games x 13-15 levels x 5 viewports, renderer bounds() + HUD on screen,
   apart and off the level, contact sheet); Dotwork board now starts below its tip line (tips covered the top row).
   Owner's Beadloom clipping not reproduced at level start; not covered: tips/banners shown mid-play, Purl side HUD
