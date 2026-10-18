@@ -6,7 +6,7 @@
 // (the shelf's "Update ready" button) or until every tab of the old version has closed: a running page never
 // mixes old and new files.
 
-const VERSION = '1e0a210f2bca';
+const VERSION = '28b682833c30';
 const CACHE = `whittle-${VERSION}`;
 // prettier-ignore
 const FILES = [

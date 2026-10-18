@@ -32,6 +32,17 @@ function route() {
   else showShelf();
 }
 
+// The card's progress label (games/index.js summary), or nothing if the save has none or can't be read.
+function progressPill(g) {
+  let label = null;
+  try {
+    label = g.summary?.(save.store(g.id).get());
+  } catch (e) {
+    console.warn(`summary(${g.id})`, e);
+  }
+  return label ? el('span', { class: 'card-pill' }, label) : null;
+}
+
 function showShelf() {
   closeCurrent();
   document.body.dataset.view = 'shelf';
@@ -61,7 +72,7 @@ function showShelf() {
             'a',
             { class: 'card', href: `#/${g.id}` },
             el('div', { class: 'card-icon', html: g.icon }),
-            el('div', {}, el('h3', {}, g.title), el('p', {}, g.blurb)),
+            el('div', {}, el('h3', {}, g.title), el('p', {}, g.blurb), progressPill(g)),
           ),
         ),
       ),

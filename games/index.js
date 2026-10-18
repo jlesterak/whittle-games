@@ -39,6 +39,19 @@ const ludoIcon = `<svg viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="
 <path d="M27 27L32 32L27 37Z" fill="#e0473f"/><path d="M27 27L32 32L37 27Z" fill="#35a352"/><path d="M37 27L32 32L37 37Z" fill="#efb22a"/><path d="M27 37L32 32L37 37Z" fill="#3a7bd5"/>
 <g stroke="#fff" stroke-width="2"><circle cx="17.5" cy="17.5" r="4.5" fill="#e0473f"/><circle cx="46.5" cy="46.5" r="4.5" fill="#efb22a"/><circle cx="32" cy="13" r="4" fill="#35a352"/></g></svg>`;
 
+// summary(blob): a short progress label for the shelf card, from the game's save blob, without loading the game.
+// Pure and defensive: a missing or broken blob gives null (no label), never an error.
+const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const levelLabel = (b) => (plain(b) && Number.isInteger(b.level) && b.level > 1 ? `Level ${b.level}` : null);
+const inProgress = (b) => plain(b) && plain(b.game) && !b.game.over && b.game.phase !== 'over'; // Yacht: over, Ludo: phase
+function yachtLabel(b) {
+  if (inProgress(b)) return 'Game in progress';
+  if (!plain(b) || !plain(b.high)) return null;
+  const scores = Object.values(b.high).flatMap((list) => (Array.isArray(list) ? list : []))
+    .map((e) => (plain(e) ? e.score : null)).filter((n) => Number.isFinite(n));
+  return scores.length ? `Best ${Math.max(...scores)}` : null;
+}
+
 export const games = [
   {
     id: 'beadloom',
@@ -46,6 +59,7 @@ export const games = [
     blurb: 'Pour the bead ring into the right crates before the slots clog.',
     icon: beadsIcon,
     load: () => import('./beadloom/game.js'),
+    summary: levelLabel,
   },
   {
     id: 'purl',
@@ -53,6 +67,7 @@ export const games = [
     blurb: 'Unravel the knitted picture onto the right bobbins before the slots clog.',
     icon: purlIcon,
     load: () => import('./purl/game.js'),
+    summary: levelLabel,
   },
   {
     id: 'dotwork',
@@ -60,6 +75,7 @@ export const games = [
     blurb: 'Tap each arrow out of the maze, but only when its way to the edge is clear.',
     icon: pointIcon,
     load: () => import('./dotwork/game.js'),
+    summary: levelLabel,
   },
   {
     id: 'yacht',
@@ -67,6 +83,7 @@ export const games = [
     blurb: 'Five dice, three rolls, thirteen boxes. Solo high scores, bots or pass-and-play.',
     icon: yachtIcon,
     load: () => import('./yacht/game.js'),
+    summary: yachtLabel,
   },
   {
     id: 'ludo',
@@ -74,5 +91,6 @@ export const games = [
     blurb: 'Race four tokens home, a 6 to come out. House rules, bots or pass-and-play.',
     icon: ludoIcon,
     load: () => import('./ludo/game.js'),
+    summary: (b) => (inProgress(b) ? 'Game in progress' : null),
   },
 ];
