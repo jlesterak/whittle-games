@@ -6,10 +6,12 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P7 Frame-rate budget: smoke --perf (4x CPU throttle, autoplay, rAF intervals), docs/PERF.md
+- P7 Frame-rate budget: smoke --perf and docs/PERF.md written, fix item P7b added; fresh verifier pending
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
+- P7b Frame rate on the phone: ?fps overlay, then fixes only if the phone is under 50 fps
+- P7bh [HUMAN] Read the frame rate on the phone (needs P7b's overlay)
 - P8 Accessibility and input basics
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate

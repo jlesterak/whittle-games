@@ -9,6 +9,7 @@
 //   node tools/smoke.mjs --saves                  every game over broken and odd saves
 //   node tools/smoke.mjs --sweep                  Beadloom, Purl, Dotwork over many levels and phone sizes: the
 //                                                 drawn level must stay on the stage, the HUD on screen and apart
+//   node tools/smoke.mjs --perf                   frame rate on the heaviest levels with the CPU slowed 4x (docs/PERF.md)
 //
 // Flags: --game id[,id] (shelf counts as a game), --viewport WxH[,WxH], --params "a=1&b=2" (added to the
 // URL; autoplay=1 unless --no-autoplay), --wait seconds after load (default 5), --out dir, --jobs n,
@@ -600,6 +601,55 @@ img{width:100%;border:2px solid #444}.bad img{border-color:#e33}.bad figcaption{
   return results;
 }
 
+// --perf: the heaviest levels playing themselves (?autoplay=1) on a phone-sized page with the CPU slowed 4x through
+// CDP. Frame intervals come from requestAnimationFrame over 10 s, after the level has settled. One page at a time, so
+// pages don't compete for the CPU. Median below 50 fps fails (P7).
+export const PERF = {
+  cases: [['beadloom', 55], ['beadloom', 60], ['purl', 60], ['dotwork', 80], ['dotwork', 208]],
+  viewport: '412x915',
+  throttle: +(process.env.PERF_THROTTLE || 4),
+  seconds: 10,
+  minFps: 50,
+};
+
+// Frame times from requestAnimationFrame, plus how long the game's own rAF callbacks ran (its script time: the
+// update and the canvas calls it issues; rasterising those calls happens after it).
+const FRAMES = (ms) => `new Promise((done) => {
+  const t = [], js = [];
+  const raf = window.requestAnimationFrame;
+  let cur = 0;
+  window.requestAnimationFrame = (cb) => raf((now) => { const a = performance.now(); try { cb(now); } finally { cur += performance.now() - a; } });
+  const step = (now) => {
+    t.push(now); js.push(cur); cur = 0;
+    if (now - t[0] < ${ms}) raf(step); else { window.requestAnimationFrame = raf; done({ t, js: js.slice(1) }); }
+  };
+  raf(step);
+})`;
+
+async function perfCheck(browser, base, only) {
+  const results = [];
+  for (const [id, level] of PERF.cases) {
+    if (only && !only.includes(id)) continue;
+    const page = await browser.newPage({ ...device(PERF.viewport), ...(process.env.PERF_DPR && { dpr: +process.env.PERF_DPR }) });
+    const errors = watchErrors(page);
+    try {
+      await page.send('Emulation.setCPUThrottlingRate', { rate: PERF.throttle });
+      await page.goto(`${base}?autoplay=1&level=${level}#/${id}`);
+      await sleep(4000); // mount, splash, first moves
+      const { t, js } = await page.eval(FRAMES(PERF.seconds * 1000));
+      const d = t.slice(1).map((v, i) => v - t[i]).sort((a, b) => a - b);
+      const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+      js.sort((a, b) => a - b);
+      results.push({ id, level, frames: d.length, median: 1000 / q(d, 0.5), p95: 1000 / q(d, 0.95), worst: d[d.length - 1], js: q(js, 0.5), js95: q(js, 0.95), errors });
+    } catch (e) {
+      results.push({ id, level, frames: 0, median: 0, p95: 0, worst: 0, js: 0, js95: 0, errors: [...errors, `smoke: ${e.message}`] });
+    } finally {
+      await page.close();
+    }
+  }
+  return results;
+}
+
 function num(flag, v, min) {
   const n = Number(v);
   if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
@@ -607,7 +657,7 @@ function num(flag, v, min) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false, sweep: false };
+  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false, sweep: false, perf: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
@@ -622,6 +672,7 @@ function parseArgs(argv) {
     else if (a === '--sw') opts.sw = true;
     else if (a === '--saves') opts.saves = true;
     else if (a === '--sweep') opts.sweep = true;
+    else if (a === '--perf') opts.perf = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
   const known = ['shelf', ...games.map((g) => g.id)];
@@ -655,6 +706,20 @@ async function main() {
     const failed = await savesCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
     console.log(`${failed ? `${failed} save case(s) failed` : 'all save cases ok'} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     process.exit(failed ? 1 : 0);
+  }
+  if (opts.perf) {
+    const only = opts.games.length === games.length + 1 ? null : opts.games;
+    const results = await perfCheck(browser, url, only).finally(() => (browser.close(), server.close()));
+    console.log(`${PERF.viewport}, CPU slowed ${PERF.throttle}x, ${PERF.seconds} s of autoplay each`);
+    console.log('     game      level  frames  median fps  95th pct fps  worst frame ms  script ms (median / 95th)');
+    let bad = 0;
+    for (const r of results) {
+      const fail = r.median < PERF.minFps || r.errors.length;
+      if (fail) bad++;
+      console.log(`${fail ? 'FAIL' : 'ok  '} ${r.id.padEnd(9)} ${String(r.level).padStart(4)} ${String(r.frames).padStart(7)} ${r.median.toFixed(1).padStart(11)} ${r.p95.toFixed(1).padStart(13)} ${r.worst.toFixed(0).padStart(15)}  ${r.js.toFixed(1).padStart(9)} / ${r.js95.toFixed(1)}`);
+      for (const e of r.errors) console.log(`       ${e}`);
+    }
+    process.exit(bad ? 1 : 0);
   }
   if (opts.sweep) {
     const only = opts.games.length === games.length + 1 ? null : opts.games;

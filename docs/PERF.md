@@ -1,0 +1,62 @@
+# Frame rate
+
+How fast the heaviest levels draw, how that was measured, and what the numbers do and don't say.
+
+## Method
+
+`node tools/smoke.mjs --perf` (item P7):
+
+- Headless Chromium over the DevTools protocol, one page at a time so pages don't compete for the CPU.
+- Page 412x915, touch, device pixel ratio 3 (a common phone). `PERF_DPR=1` overrides the ratio.
+- CPU slowed 4x with `Emulation.setCPUThrottlingRate` (`PERF_THROTTLE` overrides it).
+- `?autoplay=1&level=N`; wait 4 s (mount, splash, first moves), then record `requestAnimationFrame` times for 10 s.
+- Reported: median and 95th percentile fps (from frame intervals), the worst frame, and the game's own script time
+  per frame (its rAF callbacks: update plus the canvas calls it issues).
+- Levels: Beadloom 55 and 60, Purl 60, Dotwork 80 and 208 (the heaviest of each game).
+
+Machine: Claude cloud sandbox, Intel Xeon 2.8 GHz (4 cores), 15 GB RAM, Chromium 141.0.7390.37 headless, **no GPU**
+(canvas is rasterised in software on the page's main thread). Measured 2026-10-18.
+
+## Results
+
+DPR 3, CPU slowed 4x (the `--perf` default):
+
+| Game | Level | Median fps | 95th pct fps | Worst frame ms | Script ms (median / 95th) |
+|---|---|---|---|---|---|
+| Beadloom | 55 | 7.5 | 5.5 | 200 | 11.2 / 21.2 |
+| Beadloom | 60 | 7.5 | 5.5 | 267 | 11.5 / 19.2 |
+| Purl | 60 | 15.0 | 15.0 | 117 | 3.4 / 6.0 |
+| Dotwork | 80 | 20.0 | 20.0 | 67 | 28.0 / 33.3 |
+| Dotwork | 208 | 20.0 | 15.0 | 83 | 32.5 / 45.2 |
+
+DPR 1, CPU slowed 4x (`PERF_DPR=1`):
+
+| Game | Level | Median fps | 95th pct fps | Script ms (median / 95th) |
+|---|---|---|---|---|
+| Beadloom | 55 | 29.9 | 20.0 | 9.7 / 13.3 |
+| Beadloom | 60 | 20.0 | 15.0 | 10.8 / 16.8 |
+| Purl | 60 | 59.9 | 30.0 | 3.4 / 6.8 |
+| Dotwork | 80 | 30.0 | 20.0 | 17.7 / 31.2 |
+| Dotwork | 208 | 30.0 | 29.9 | 18.4 / 28.6 |
+
+DPR 3, no throttling (`PERF_THROTTLE=1`): Beadloom 55 59.5, Beadloom 60 30.0, Purl 60 59.9, Dotwork 80 59.9,
+Dotwork 208 59.9 median fps.
+
+## What the numbers say
+
+Every game is under the 50 fps budget at 4x here. Most of the cost is software rasterisation, which a phone does on
+its GPU:
+
+- Frame rate falls with pixel count: Purl 60 is at the vsync cap at DPR 1, 30 fps at DPR 2 and 15 fps at DPR 3, with
+  the same 3.4 ms of script.
+- CPU profiles (`Profiler` over 5 s at 4x) put Beadloom 60 at 73 % native "(program)" time and 18 % `drawImage`
+  (about 1,500 bead sprites a frame), and Dotwork 208 at 53 % `drawImage`: the copy of its cached board layer onto
+  the screen canvas each frame. JavaScript itself is a few per cent.
+- "Script ms" includes that `drawImage` work, because software canvas copies inside the call. On a GPU canvas the
+  call only records a command.
+- Turning on SwiftShader (a CPU-emulated GPU) made it worse (Beadloom 60: 2.4 fps), so the sandbox can't stand in
+  for a phone's GPU.
+
+So these numbers are a pessimistic bound, not a phone measurement. They do rank the games: Beadloom is the heaviest
+(it is also the only one under 50 fps without throttling, at DPR 3), then Dotwork, then Purl. Fix item P7b in
+PLAN.md tracks them.
