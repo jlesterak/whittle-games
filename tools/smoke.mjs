@@ -518,8 +518,14 @@ const SWEEP_CHECK = (hook) => `(() => {
     const q = el.getBoundingClientRect();
     return q.width * q.height < vw * vh / 2;
   };
+  // inside a control only what reaches outside it counts (a count badge on a booster's corner)
+  const sticksOut = (el) => {
+    const host = el.parentElement.closest('button, [role=button], i, svg');
+    const q = el.getBoundingClientRect(), h = host.getBoundingClientRect();
+    return q.left < h.left - 1 || q.top < h.top - 1 || q.right > h.right + 1 || q.bottom > h.bottom + 1;
+  };
   const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output, i, svg')]
-    .filter((el) => el.parentElement !== root && !el.closest('.modal, dialog, [role=dialog]') && !el.parentElement.closest('button, [role=button], i, svg') && seen(el) && item(el));
+    .filter((el) => el.parentElement !== root && !el.closest('.modal, dialog, [role=dialog]') && seen(el) && item(el) && (!el.parentElement.closest('button, [role=button], i, svg') || sticksOut(el)));
   // text is measured by its glyphs (a Range), not its line box: a 150 px line-height label is only as tall as its text
   const textOnly = (el) => !el.matches('button, [role=button], i, svg') && !el.children.length && el.textContent.trim();
   const box = (el) => { if (!textOnly(el)) return el.getBoundingClientRect(); const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); };
@@ -533,7 +539,7 @@ const SWEEP_CHECK = (hook) => `(() => {
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const [ea, a] = rects[i], [eb, b] = rects[j];
     if (ea.contains(eb) || eb.contains(ea)) continue;
-    if (owner(ea) && owner(ea) === owner(eb) && (ea.matches('i, svg') || eb.matches('i, svg'))) continue;
+    if (owner(ea) && owner(ea) === owner(eb) && ea.matches('i, svg') !== eb.matches('i, svg')) continue; // one icon, one label
     if (cut(a, b)) problems.push('HUD "' + name(ea) + '" overlaps "' + name(eb) + '"');
   }
   for (const b of boxes) {
