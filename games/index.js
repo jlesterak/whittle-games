@@ -47,9 +47,12 @@ const inProgress = (b) => plain(b) && plain(b.game) && !b.game.over && b.game.ph
 function yachtLabel(b) {
   if (inProgress(b)) return 'Game in progress';
   if (!plain(b) || !plain(b.high)) return null;
-  const scores = Object.values(b.high).flatMap((list) => (Array.isArray(list) ? list : []))
-    .map((e) => (plain(e) ? e.score : null)).filter((n) => Number.isFinite(n));
-  return scores.length ? `Best ${Math.max(...scores)}` : null;
+  const best = (list) => Math.max(...(Array.isArray(list) ? list : []).map((e) => (plain(e) && Number.isFinite(e.score) ? e.score : -Infinity)));
+  // Triple scores run on a bigger scale, so Classic's best is shown when there is one
+  const classic = best(b.high.classic);
+  if (classic > -Infinity) return `Best ${classic}`;
+  const triple = best(b.high.triple);
+  return triple > -Infinity ? `Best ${triple} (Triple)` : null;
 }
 
 export const games = [

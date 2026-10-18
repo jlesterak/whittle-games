@@ -15,11 +15,12 @@ for (const id of ['beadloom', 'purl', 'dotwork']) {
   });
 }
 
-test('yacht: game in progress first, then the best score over both variants', () => {
+test('yacht: game in progress first, then the best Classic score, else the best Triple', () => {
   const s = summary('yacht');
   assert.equal(s({ game: null, high: { classic: [], triple: [] } }), null);
   assert.equal(s({ game: { over: false }, high: { classic: [{ score: 300 }] } }), 'Game in progress');
-  assert.equal(s({ game: { over: true }, high: { classic: [{ score: 212 }], triple: [{ score: 287 }, { score: 150 }] } }), 'Best 287');
+  assert.equal(s({ game: { over: true }, high: { classic: [{ score: 212 }, { score: 190 }], triple: [{ score: 687 }] } }), 'Best 212');
+  assert.equal(s({ game: null, high: { classic: [], triple: [{ score: 687 }, { score: 500 }] } }), 'Best 687 (Triple)');
   for (const b of MALFORMED) assert.equal(s(b), null);
 });
 

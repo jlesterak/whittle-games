@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- E1 Progress on the shelf: summary(blob) per game, pill on the shelf card
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -22,6 +21,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-18: E1 shelf progress: summary(blob) per game in games/index.js (Level N, Game in progress, Best N /
+  Best N (Triple)), pill on the card; malformed saves give no label. Fresh verifier PASS (real play driven headless)
 - 2026-10-18: P8 accessibility: smoke --a11y (labels, Tab reach after a roll, Enter/Space on Settings and custom
   buttons, back-then-reopen resumes all 5 games); modals take focus, trap Tab, close on Escape; focus ring; Yacht
   score boxes by keyboard; Beadloom crate hit ±80 x ±82 (44+ CSS px on the portrait sizes). Canvas boards stay
