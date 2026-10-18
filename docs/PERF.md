@@ -57,8 +57,8 @@ its GPU:
   the same 3.4 ms of script.
 - CPU profiles (CDP `Profiler`, 200 us sampling, 5 s after a 4 s settle, 4x, DPR 1 for Beadloom and DPR 3 for
   Dotwork) put Beadloom 60 at 73 % native "(program)" time and 18 % `drawImage` (about 1,500 bead sprites a frame;
-  a 10 s run at DPR 3 gave 91 % and 6 %), and Dotwork 208 at 53 % `drawImage` (51 % in a second run): the copy of its cached board layer onto
-  the screen canvas each frame. JavaScript itself is a few per cent.
+  a 10 s run at DPR 3 gave 91 % and 6 %), and Dotwork 208 at 53 % `drawImage` (51 % in a second run): the copy of
+  its cached board layer onto the screen canvas each frame. JavaScript itself is a few per cent.
 - "Script ms" includes that `drawImage` work, because software canvas copies inside the call. On a GPU canvas the
   call only records a command.
 - Turning on SwiftShader (a CPU-emulated GPU) made it worse (Beadloom 60: 2.4 fps), so the sandbox can't stand in
