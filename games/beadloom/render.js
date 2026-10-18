@@ -184,6 +184,8 @@ export class Renderer {
     const [bx1, by1] = [LAYOUT.colX(b.cols - 1, b.cols), LAYOUT.rowY(b.rows - 1, b.rows)];
     const B = CELL_BOX; // the rails drawn round the board
     out.push(css('crates', bx0 - B.left - RAIL_PAD, by0 - B.up - RAIL_PAD, bx1 + B.right + RAIL_PAD, by1 + B.down + RAIL_PAD));
+    const sp = LAYOUT.spout;
+    out.push(css('spout', sp.x - sp.w / 2, sp.y - sp.h / 2, sp.x + sp.w / 2, sp.y + sp.h / 2 + 6));
     const K = this.sim.slots.length;
     out.push(css('slots', LAYOUT.slotX(0, K) - SLOT_W / 2, LAYOUT.slotY - SLOT_H / 2, LAYOUT.slotX(K - 1, K) + SLOT_W / 2, LAYOUT.slotY + SLOT_H / 2));
     return out;

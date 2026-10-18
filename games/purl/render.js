@@ -131,7 +131,7 @@ export class Renderer {
       css('picture', x0, KNIT_TOP, x0 + kw, PIC_BOTTOM),
       css('hooks', this.laneX(this.C) - 20, HOOK_Y - 62, this.laneX(this.C + 1) + 20, HOOK_Y),
       css('slots', this.slotX(0) - sw / 2, BOB_Y - BOB_H / 2 - 6, this.slotX(K - 1) + sw / 2, SLOT_Y + SLOT_H / 2 + 6),
-      css('board', cx0 - BOB_W / 2 - 20, cy0 - BOB_H / 2, cx1 + BOB_W / 2 + 20, cy1 + BOB_H / 2),
+      css('board', cx0 - 69, cy0 - this.pitchY / 2, cx1 + 69, cy1 + this.pitchY / 2), // cells with their grout
     ];
   }
 

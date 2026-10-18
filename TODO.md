@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P6 Layout sweep: smoke --sweep (bounds + HUD overlap + contact sheet), then fix what it finds
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -22,6 +21,10 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-18: P6 layout sweep: smoke --sweep (3 games x 13-15 levels x 5 viewports, renderer bounds() + HUD on screen,
+  apart and off the level, contact sheet); Dotwork board now starts below its tip line (tips covered the top row).
+  Owner's Beadloom clipping not reproduced at level start; not covered: tips/banners shown mid-play, Purl side HUD
+  may sit on a wide frame's wood (not the picture). Five fresh verifiers; the last PASS
 - 2026-10-14: D2s generated boards replace the three rebuilt from recordings (level 208 is ordinary, Dotwork
   LEVEL_GEN 2); the tests now check reveal timing, real swaps, dispenser order and peel layers (mutation-checked)
 - 2026-10-14: P5 Beadloom feeder joins are rounded fillets on every wall layer, shadow drawn once at 25 %; track
