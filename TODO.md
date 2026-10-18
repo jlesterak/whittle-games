@@ -6,7 +6,7 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P8 Accessibility and input basics: smoke --a11y all ok; fresh verifier pending
+- E1 Progress on the shelf: summary(blob) per game, pill on the shelf card
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -15,7 +15,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   `?fps&autoplay=1&level=208#/dotwork`, write median / slow-5% numbers in the Inbox
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
-- E1 Progress on the shelf
 - E2 Daily puzzle
 - E3 Farkle
 - E4 Backgammon
@@ -23,6 +22,10 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-18: P8 accessibility: smoke --a11y (labels, Tab reach after a roll, Enter/Space on Settings and custom
+  buttons, back-then-reopen resumes all 5 games); modals take focus, trap Tab, close on Escape; focus ring; Yacht
+  score boxes by keyboard; Beadloom crate hit ±80 x ±82 (44+ CSS px on the portrait sizes). Canvas boards stay
+  tap-only. Second fresh verifier PASS
 - 2026-10-18: P7 frame-rate budget: smoke --perf (4x throttle, DPR 3, 10 s autoplay, rAF intervals + script ms),
   docs/PERF.md. All five heavy levels are under 50 fps here (7.5-20 fps), mostly software raster with no GPU, so
   fix item P7b (phone fps overlay, then targeted fixes) holds the numbers. Fresh verifier PASS
