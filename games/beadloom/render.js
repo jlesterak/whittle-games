@@ -490,7 +490,7 @@ export class Renderer {
     for (let i = 0; i < b.n; i++) {
       if (b.kind[i] === NOCELL) continue;
       const [cx, cy] = this.cellXY(i);
-      if (Math.abs(x - cx) < 68 && y > cy - 72 && y < cy + 72) return i;
+      if (Math.abs(x - cx) < CRATE_W / 2 && y > cy - 72 && y < cy + 72) return i; // the whole drawn crate (±74: 44 CSS px at 360)
     }
     return -1;
   }

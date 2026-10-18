@@ -20,6 +20,8 @@ body {
 }
 #app { height: 100%; }
 button { font: inherit; cursor: pointer; }
+/* keyboard focus is always visible (mouse and touch focus stay plain) */
+:focus-visible { outline: 3px solid #ffd84a; outline-offset: 2px; }
 
 /* Shelf */
 .shelf {

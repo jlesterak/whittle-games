@@ -15,11 +15,31 @@ export function el(tag, attrs = {}, ...children) {
 
 // A centred panel over a dim backdrop. actions: [{ label, primary?, onClick?(close) }].
 // Returns close(). Tapping the backdrop closes it unless sticky.
+// Takes focus when it opens and keeps Tab inside; Escape closes it unless sticky; focus goes back where it was.
 export function modal({ title, body = [], actions = [], sticky = false, className = '' }) {
-  const close = () => back.remove();
+  const opener = document.activeElement;
+  const close = () => {
+    if (!back.isConnected) return;
+    back.remove();
+    document.removeEventListener('keydown', onKey, true);
+    if (opener?.isConnected) opener.focus({ preventScroll: true });
+  };
+  const onKey = (e) => {
+    if ([...document.querySelectorAll('.modal-back')].pop() !== back) return; // only the top modal
+    if (e.key === 'Escape' && !sticky) {
+      e.preventDefault();
+      close();
+    } else if (e.key === 'Tab') {
+      const items = [...panel.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')].filter((x) => !x.disabled && x.offsetParent);
+      if (!items.length) return e.preventDefault();
+      const i = items.indexOf(document.activeElement);
+      if (e.shiftKey && i <= 0) (e.preventDefault(), items[items.length - 1].focus());
+      else if (!e.shiftKey && (i === -1 || i === items.length - 1)) (e.preventDefault(), items[0].focus());
+    }
+  };
   const panel = el(
     'div',
-    { class: `modal ${className}`, role: 'dialog', 'aria-label': title || 'Dialog' },
+    { class: `modal ${className}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title || 'Dialog', tabindex: '-1' },
     title && el('h2', {}, title),
     el('div', { class: 'modal-body' }, body),
     actions.length > 0 &&
@@ -41,6 +61,8 @@ export function modal({ title, body = [], actions = [], sticky = false, classNam
   const back = el('div', { class: 'modal-back' }, panel);
   if (!sticky) back.addEventListener('click', (e) => e.target === back && close());
   document.body.append(back);
+  document.addEventListener('keydown', onKey, true);
+  (panel.querySelector('button, input, select, a[href]') || panel).focus({ preventScroll: true });
   return close;
 }
 

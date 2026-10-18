@@ -6,7 +6,10 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- P8 Accessibility and input basics: smoke --a11y, focus/Escape, back gesture resume, Beadloom crate hit box
+- P8 Accessibility and input basics (paused 2026-10-18): done so far: modal focus/Tab trap/Escape, focus ring,
+  Beadloom crate hit box ±74, smoke --a11y (labels, Tab, Settings by Enter/Space/Escape, back-and-reopen resume:
+  all games resume). Next: skip tabindex=-1 + aria-disabled controls in the Tab check (Ludo's unmovable tokens
+  fail it today), full --a11y run, fresh verifier
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
