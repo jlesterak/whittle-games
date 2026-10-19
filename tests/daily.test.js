@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { cleanDaily, currentStreak, dayBefore, freshDaily, isDate, localDate, winDaily, DAILY_KEEP } from '../core/daily.js';
+import { readFileSync } from 'node:fs';
+import { clearInProgress, cleanDaily, currentStreak, dayBefore, freshDaily, isDate, localDate, winDaily, DAILY_KEEP } from '../core/daily.js';
 import { generateDaily, DAILY_N } from '../games/dotwork/generator.js';
 import { peel } from '../games/dotwork/board.js';
 import * as beadloom from '../games/beadloom/rules.js';
@@ -69,8 +70,10 @@ test('streak: consecutive days count, a gap restarts it, replaying a day keeps t
   assert.equal(currentStreak(s.daily, '2026-01-04'), 0);
   s = winDaily(s, '2026-01-05', 1);
   assert.equal(s.daily.streak, 1);
-  s = winDaily(s, '2026-01-03', 1); // an old date played late doesn't rewind lastDate
+  s = winDaily(s, '2026-01-03', 1); // an old date played late doesn't rewind lastDate or touch the streak
   assert.equal(s.daily.lastDate, '2026-01-05');
+  assert.equal(s.daily.streak, 1);
+  assert.equal(s.daily.last['2026-01-03'], 1);
 });
 
 test(`only the last ${DAILY_KEEP} days are kept; broken saves clean up without throwing`, () => {
@@ -89,3 +92,23 @@ test(`only the last ${DAILY_KEEP} days are kept; broken saves clean up without t
     assert.deepEqual(d.last, {});
   }
 });
+
+test('ending a daily clears only the daily slot; ending a campaign level only the campaign one', () => {
+  const save = { inProgress: { level: 57 }, daily: { ...freshDaily(), inProgress: { date: '2026-01-01' } } };
+  clearInProgress(save, { n: 42, daily: '2026-01-01' });
+  assert.deepEqual(save.inProgress, { level: 57 });
+  assert.equal(save.daily.inProgress, null);
+  save.daily.inProgress = { date: '2026-01-02' };
+  clearInProgress(save, { n: 57 });
+  assert.equal(save.inProgress, null);
+  assert.deepEqual(save.daily.inProgress, { date: '2026-01-02' });
+});
+
+// The E2 verifier found Dotwork's Give Up clearing the campaign's save.inProgress during a daily. Every game with a
+// daily must clear progress through clearInProgress (or its own persist(), which routes by level.daily).
+for (const g of ['dotwork', 'beadloom', 'purl']) {
+  test(`${g}: game.js never clears save.inProgress directly`, () => {
+    const src = readFileSync(new URL(`../games/${g}/game.js`, import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /save\.inProgress\s*=\s*null/);
+  });
+}

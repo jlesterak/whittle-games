@@ -2,7 +2,7 @@
 // 1080x2316 design space for the HUD, boosters and end screens. Fixed-step sim, rAF render.
 
 import { createSim, generateLevel, generateDaily, difficulty, CRATE_ROWS } from './rules.js';
-import { cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
+import { clearInProgress, cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
 import { DT } from '../../engines/slotsort/sim.js';
 import { Renderer, FIT } from './render.js';
 import { fitStage, canvasDpr } from '../../core/stage.js';
@@ -317,7 +317,7 @@ export default {
       overlay = null;
     }
 
-    const clearProgress = () => (level?.daily ? (save.daily.inProgress = null) : (save.inProgress = null));
+    const clearProgress = () => clearInProgress(save, level);
     // The level again from the start (daily or campaign), and the way back from a daily to the campaign.
     const restart = () => startLevel(level.daily || level.n);
     function backToLevels() {

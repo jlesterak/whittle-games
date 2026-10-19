@@ -5,7 +5,7 @@
 
 import { createBoard, loadBoard, fire, erase, addStar, freeArrows, serialize, STARS } from './board.js';
 import { generateLevel, generateDaily } from './generator.js';
-import { cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
+import { clearInProgress, cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
 import { Renderer } from './render.js';
 import { fitStage } from '../../core/stage.js';
 import { cleanSave } from '../../core/save.js';
@@ -440,7 +440,7 @@ export default {
       save.coins += reward;
       save.best[level.n] = Math.max(save.best[level.n] || 0, stars);
       save.level = Math.max(save.level, level.n + 1);
-      save.inProgress = null;
+      clearInProgress(save, level);
       ctx.store.set(save);
       sounds.win();
       const rm = S.get('reducedMotion');
@@ -539,7 +539,7 @@ export default {
 
     function showFailed() {
       closeOverlay();
-      save.inProgress = null;
+      clearInProgress(save, level);
       ctx.store.set(save);
       overlay = el(
         'div',
