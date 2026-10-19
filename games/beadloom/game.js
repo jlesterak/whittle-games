@@ -123,6 +123,11 @@ export default {
     // Won but not yet recorded (the end screen, which records it, isn't up): switching levels then would cancel the
     // pending win, so startLevel waits and leaving the game records it first (E2 verifiers).
     const winUnrecorded = () => sim?.status === 'won' && !overlay;
+    // Leaving the game or the page: a win still waiting for its end screen is recorded before saving.
+    const leaving = () => {
+      if (winUnrecorded()) showWin();
+      persist();
+    };
     // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
       if (winUnrecorded()) return; // a won level's result is recorded first (showWin), then any button may move on
@@ -549,7 +554,7 @@ export default {
       if (document.hidden) persist();
     };
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('pagehide', persist);
+    window.addEventListener('pagehide', leaving);
     const ro = new ResizeObserver(resize);
     ro.observe(root);
     saveTimer = setInterval(persist, 5000);
@@ -566,15 +571,14 @@ export default {
 
     return {
       unmount() {
-        if (winUnrecorded()) showWin(); // leaving during the win animation still records the win
-        persist();
+        leaving();
         cancelAnimationFrame(raf);
         clearInterval(saveTimer);
         clearTimeout(endTimer);
         ro.disconnect();
         offSettings();
         document.removeEventListener('visibilitychange', onVis);
-        window.removeEventListener('pagehide', persist);
+        window.removeEventListener('pagehide', leaving);
         document.body.style.background = '';
       },
     };

@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- E2 Daily puzzle: Dotwork, Beadloom and Purl done; fresh verifier pending
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -21,6 +20,9 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-19: E2 daily puzzle (Dotwork, Beadloom, Purl): date-seeded mid-difficulty level, own save slot, streak and
+  30 days (core/daily.js); campaign progress untouched in real play (lose, restart, switch, back, mid-win). Five fresh
+  verifiers; four found real ways to lose progress, all fixed (clearInProgress, save-before-switch, win guard)
 - 2026-10-18: E1 shelf progress: summary(blob) per game in games/index.js (Level N, Game in progress, Best N /
   Best N (Triple)), pill on the card; malformed saves give no label. Fresh verifier PASS (real play driven headless)
 - 2026-10-18: P8 accessibility: smoke --a11y (labels, Tab reach after a roll, Enter/Space on Settings and custom
