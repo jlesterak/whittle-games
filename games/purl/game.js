@@ -97,8 +97,12 @@ export default {
       ctx.store.set(save);
     }
 
+    // Won but not yet recorded (the end screen, which records it, isn't up): switching levels then would cancel the
+    // pending win, so startLevel waits and leaving the game records it first (E2 verifiers).
+    const winUnrecorded = () => sim?.status === 'won' && !overlay;
     // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
+      if (winUnrecorded()) return; // a won level's result is recorded first (showWin), then any button may move on
       if (level && sim) persist(); // save the level being left (taps only save every 5 s), daily or campaign
       clearTimeout(endTimer);
       closeOverlay();
@@ -412,14 +416,11 @@ export default {
     }
 
     function openSettings() {
-      // While a won level waits for its win screen (up to ~2 s), switching would cancel the pending win and lose it,
-      // so these only close the panel then (E2 verifier). The win screen's own buttons run after the win is recorded.
-      const unlessWon = (fn) => (close) => (close(), sim.status !== 'won' && fn());
       ctx.openSettings([
-        { label: 'Restart level', onClick: unlessWon(restart) },
+        { label: 'Restart level', onClick: (close) => (close(), restart()) },
         level.daily
-          ? { label: 'Back to levels', onClick: unlessWon(backToLevels) }
-          : { label: "Today's puzzle", onClick: unlessWon(startToday) },
+          ? { label: 'Back to levels', onClick: (close) => (close(), backToLevels()) }
+          : { label: "Today's puzzle", onClick: (close) => (close(), startToday()) },
       ]);
     }
 
@@ -531,6 +532,7 @@ export default {
 
     return {
       unmount() {
+        if (winUnrecorded()) showWin(); // leaving during the win animation still records the win
         persist();
         cancelAnimationFrame(raf);
         clearInterval(saveTimer);
