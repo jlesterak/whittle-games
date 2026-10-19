@@ -7,6 +7,11 @@
 //   node tools/smoke.mjs --game beadloom --params "level=40" --wait 8
 //   node tools/smoke.mjs --sw                     offline start and a whole update, on a temporary copy
 //   node tools/smoke.mjs --saves                  every game over broken and odd saves
+//   node tools/smoke.mjs --sweep                  Beadloom, Purl, Dotwork over many levels and phone sizes: the
+//                                                 drawn level must stay on the stage, the HUD on screen and apart
+//   node tools/smoke.mjs --a11y                   labels, keyboard (Tab, Enter, Space, Escape), and back-then-reopen
+//                                                 resumes every game where it was
+//   node tools/smoke.mjs --perf                   frame rate on the heaviest levels with the CPU slowed 4x (docs/PERF.md)
 //
 // Flags: --game id[,id] (shelf counts as a game), --viewport WxH[,WxH], --params "a=1&b=2" (added to the
 // URL; autoplay=1 unless --no-autoplay), --wait seconds after load (default 5), --out dir, --jobs n,
@@ -21,6 +26,7 @@ import { fileURLToPath } from 'node:url';
 import { launch } from './cdp.mjs';
 import { render, TOP, DIRS } from './precache.mjs';
 import { games } from '../games/index.js';
+import { frameStats } from '../core/fps.js';
 
 const ROOT = join(fileURLToPath(import.meta.url), '../..');
 
@@ -474,6 +480,332 @@ async function mountFailCheck(browser, base) {
   return [...errors.filter((e) => !e.includes('mount-fail check')), ...problems];
 }
 
+// --sweep: each renderer reports boxes for what the level drew (renderer.bounds(), CSS px in the canvas). They
+// must stay inside the canvas (or the box's own `inside` area), and the HUD (the game's DOM controls and labels)
+// must stay on screen, apart from each other and off the drawn level. Splashes meant to cover the level for a
+// moment carry data-over-level. Writes a contact sheet to <out>/index.html.
+export const SWEEP = {
+  games: { beadloom: '__bo', purl: '__ck', dotwork: '__po' },
+  levels: [1, 2, 5, 10, 11, 20, 22, 25, 30, 40, 50, 55, 60],
+  extra: { dotwork: [80, 208] },
+  viewports: ['360x740', '384x693', '384x780', '412x915', '915x412'],
+};
+
+const SWEEP_CHECK = (hook) => `(() => {
+  const problems = [];
+  const canvas = document.querySelector('.game-root canvas');
+  const r = window.${hook}?.().renderer;
+  if (!canvas || !r?.bounds) return ['no renderer bounds (debug hook ${hook})'];
+  const c = canvas.getBoundingClientRect();
+  const boxes = r.bounds();
+  const px = (v) => Math.round(v);
+  for (const b of boxes) {
+    const a = b.inside || { x0: 0, y0: 0, x1: c.width, y1: c.height };
+    const over = { left: a.x0 - b.x0, top: a.y0 - b.y0, right: b.x1 - a.x1, bottom: b.y1 - a.y1 };
+    for (const [edge, d] of Object.entries(over)) if (d > 1) problems.push(b.name + ' cut off at the ' + edge + ' by ' + px(d) + ' px');
+  }
+  const vw = innerWidth, vh = innerHeight;
+  const seen = (el) => {
+    const cs = getComputedStyle(el);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || el.closest('[hidden]')) return false;
+    for (let a = el; a; a = a.parentElement) if (+getComputedStyle(a).opacity < 0.05) return false;
+    const q = el.getBoundingClientRect();
+    return q.width >= 1 && q.height >= 1;
+  };
+  const name = (el) => (el.getAttribute('aria-label') || el.textContent.trim().replace(/\\s+/g, ' ').slice(0, 24) || el.className || el.tagName).toString();
+  const root = document.querySelector('.game-root');
+  // HUD items: controls, anything holding text, icons, and positioned boxes (pills, bars) smaller than half the screen.
+  const item = (el) => {
+    if (el.matches('button, [role=button], i, svg')) return true;
+    if ([...el.childNodes].some((n) => n.nodeType === 3 && n.nodeValue.trim())) return true;
+    if (!/absolute|fixed/.test(getComputedStyle(el).position)) return false;
+    const q = el.getBoundingClientRect();
+    return q.width * q.height < vw * vh / 2;
+  };
+  // inside a control only what reaches outside it counts (a count badge on a booster's corner)
+  const sticksOut = (el) => {
+    const host = el.parentElement.closest('button, [role=button], i, svg');
+    const q = el.getBoundingClientRect(), h = host.getBoundingClientRect();
+    return q.left < h.left - 1 || q.top < h.top - 1 || q.right > h.right + 1 || q.bottom > h.bottom + 1;
+  };
+  const hud = [...root.querySelectorAll('button, [role=button], div, span, em, b, strong, small, p, h1, h2, h3, label, output, i, svg')]
+    .filter((el) => el.parentElement !== root && !el.closest('.modal, dialog, [role=dialog]') && seen(el) && item(el) && (!el.parentElement.closest('button, [role=button], i, svg') || sticksOut(el)));
+  // text is measured by its glyphs (a Range), not its line box: a 150 px line-height label is only as tall as its text
+  const textOnly = (el) => !el.matches('button, [role=button], i, svg') && !el.children.length && el.textContent.trim();
+  const box = (el) => { if (!textOnly(el)) return el.getBoundingClientRect(); const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect(); };
+  const rects = hud.map((el) => [el, box(el)]);
+  // an icon and its label inside the same pill (a badge) may overlap; nothing else in a shared bar may
+  const owner = (el) => { for (let a = el.parentElement; a && a !== root; a = a.parentElement) if (hud.includes(a)) return a; return null; };
+  for (const [el, q] of rects) {
+    if (q.left < -1 || q.top < -1 || q.right > vw + 1 || q.bottom > vh + 1) problems.push('HUD "' + name(el) + '" off screen at ' + px(q.left) + ',' + px(q.top));
+  }
+  const cut = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const [ea, a] = rects[i], [eb, b] = rects[j];
+    if (ea.contains(eb) || eb.contains(ea)) continue;
+    if (owner(ea) && owner(ea) === owner(eb) && ea.matches('i, svg') !== eb.matches('i, svg')) continue; // one icon, one label
+    if (cut(a, b)) problems.push('HUD "' + name(ea) + '" overlaps "' + name(eb) + '"');
+  }
+  for (const b of boxes) {
+    if (b.hudOk) continue; // the HUD may sit over this part (it must still stay on the stage)
+    const box = { left: c.left + b.x0, top: c.top + b.y0, right: c.left + b.x1, bottom: c.top + b.y1 };
+    for (const [el, q] of rects) if (!el.closest('[data-over-level]') && cut(q, box)) problems.push('HUD "' + name(el) + '" covers the ' + b.name);
+  }
+  return problems;
+})()`;
+
+async function sweepCheck(browser, base, out, jobs, only, viewports = SWEEP.viewports) {
+  const queue = [];
+  for (const vp of viewports)
+    for (const [id, hook] of Object.entries(SWEEP.games))
+      if (!only || only.includes(id)) for (const level of [...SWEEP.levels, ...(SWEEP.extra[id] || [])]) queue.push({ vp, id, hook, level });
+  const results = [];
+  const one = async ({ vp, id, hook, level }) => {
+    const dev = device(vp);
+    const page = await browser.newPage(dev);
+    const errors = watchErrors(page);
+    const problems = [];
+    const file = `${vp}/${id}-${level}.png`;
+    mkdirSync(join(out, vp), { recursive: true });
+    try {
+      await page.goto(`${base}?debug&level=${level}#/${id}`);
+      let ok = false;
+      for (let t = 0; t < 8000 && !ok; t += 300) {
+        await sleep(300);
+        ok = await page.eval(`!!window.${hook}?.().renderer?.level && (${MOUNTED})`);
+      }
+      if (!ok) problems.push('game never mounted');
+      // entrance animations settle and any splash over the level goes away (up to 6 s)
+      const SPLASH = `[...document.querySelectorAll('[data-over-level]')].some((el) => el.isConnected && getComputedStyle(el).display !== 'none' && (+getComputedStyle(el).opacity > 0.05 || el.getAnimations().some((a) => a.playState === 'running')))`;
+      await sleep(1000); // a splash may start a moment after the level
+      for (let t = 0; t < 6000 && (await page.eval(SPLASH)); t += 300) await sleep(300);
+      if (await page.eval(SPLASH)) problems.push('a splash still covers the level after 7 s');
+      await sleep(700);
+      problems.push(...(await page.eval(SWEEP_CHECK(hook))));
+      await page.screenshot(join(out, file), { scale: 1 / dev.dpr });
+    } catch (e) {
+      problems.push(`smoke: ${e.message}`);
+    } finally {
+      await page.close();
+    }
+    results.push({ vp, id, level, file, problems: [...errors, ...problems] });
+  };
+  await Promise.all(Array.from({ length: jobs }, async () => {
+    for (let job; (job = queue.shift()); ) await one(job);
+  }));
+  const order = (r) => [viewports.indexOf(r.vp), Object.keys(SWEEP.games).indexOf(r.id), r.level];
+  results.sort((a, b) => { const x = order(a), y = order(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; });
+  const esc = (t) => t.replace(/[&<>]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[ch]);
+  const cells = results.map((r) => `<figure class="${r.problems.length ? 'bad' : ''}"><a href="${r.file}"><img src="${r.file}" loading="lazy"></a>` +
+    `<figcaption>${r.vp} ${r.id} ${r.level}${r.problems.map((p) => `<br>${esc(p)}`).join('')}</figcaption></figure>`);
+  writeFileSync(join(out, 'index.html'), `<!doctype html><meta charset="utf-8"><title>sweep</title><style>
+body{font:12px system-ui;margin:8px;background:#222;color:#ddd}figure{display:inline-block;margin:4px;vertical-align:top;width:200px}
+img{width:100%;border:2px solid #444}.bad img{border-color:#e33}.bad figcaption{color:#f88}</style>${cells.join('\n')}\n`);
+  return results;
+}
+
+// --perf: the heaviest levels playing themselves (?autoplay=1) on a phone-sized page with the CPU slowed 4x through
+// CDP. Frame intervals come from requestAnimationFrame over 10 s, after the level has settled. One page at a time, so
+// pages don't compete for the CPU. Median below 50 fps fails (P7).
+export const PERF = {
+  cases: [['beadloom', 55], ['beadloom', 60], ['purl', 60], ['dotwork', 80], ['dotwork', 208]],
+  viewport: '412x915',
+  throttle: +(process.env.PERF_THROTTLE || 4),
+  seconds: 10,
+  minFps: 50,
+};
+
+// Frame times from requestAnimationFrame, plus how long the game's own rAF callbacks ran (its script time: the
+// update and the canvas calls it issues; rasterising those calls happens after it).
+const FRAMES = (ms) => `new Promise((done) => {
+  const t = [], js = [];
+  const raf = window.requestAnimationFrame;
+  let cur = 0;
+  window.requestAnimationFrame = (cb) => raf((now) => { const a = performance.now(); try { cb(now); } finally { cur += performance.now() - a; } });
+  const step = (now) => {
+    t.push(now); js.push(cur); cur = 0;
+    if (now - t[0] < ${ms}) raf(step); else { window.requestAnimationFrame = raf; done({ t, js: js.slice(1) }); }
+  };
+  raf(step);
+})`;
+
+async function perfCheck(browser, base, only) {
+  const results = [];
+  for (const [id, level] of PERF.cases) {
+    if (only && !only.includes(id)) continue;
+    const page = await browser.newPage({ ...device(PERF.viewport), ...(process.env.PERF_DPR && { dpr: +process.env.PERF_DPR }) });
+    const errors = watchErrors(page);
+    try {
+      await page.send('Emulation.setCPUThrottlingRate', { rate: PERF.throttle });
+      await page.goto(`${base}?autoplay=1&level=${level}#/${id}`);
+      await sleep(4000); // mount, splash, first moves
+      const { t, js } = await page.eval(FRAMES(PERF.seconds * 1000));
+      const d = t.slice(1).map((v, i) => v - t[i]);
+      const q = (a, f) => a[Math.min(a.length - 1, Math.floor(f * a.length))];
+      js.sort((a, b) => a - b);
+      results.push({ id, level, frames: d.length, ...frameStats(d), worst: Math.max(...d), js: q(js, 0.5), js95: q(js, 0.95), errors });
+    } catch (e) {
+      results.push({ id, level, frames: 0, median: 0, p95: 0, worst: 0, js: 0, js95: 0, errors: [...errors, `smoke: ${e.message}`] });
+    } finally {
+      await page.close();
+    }
+  }
+  return results;
+}
+
+// --a11y (P8). On a desktop page, for the shelf and each game: every icon-only control has a label; Tab reaches every
+// control; the Settings button opens its dialog with Enter and with Space, the dialog takes focus, and Escape closes it
+// and puts focus back. On a phone page, each game plays itself for a moment, then the back gesture (history.back())
+// goes to the shelf and forward reopens it (with frames and timers stopped): the game must be in exactly the state it was in.
+const KEYBOARD_ROLL = { yacht: ['Roll'], ludo: ['Roll the die'] };
+const HOOKS = { beadloom: '__bo', purl: '__ck', dotwork: '__po', ludo: '__ludo', yacht: '__yz' };
+// slotsort's load() counts a full slot as completed (engines/slotsort/sim.js), so the digest does the same
+const SLOTS = (h) => `(() => { const d = window.${h}().sim.serialize(); const cap = window.${h}().sim.cap;
+  d.slots = d.slots.map((sl) => (sl && sl.landed >= cap ? (d.completions++, null) : sl)); return JSON.stringify(d); })()`;
+const DIGEST = {
+  beadloom: SLOTS,
+  purl: SLOTS,
+  dotwork: (h) => `import('./games/dotwork/board.js').then((m) => JSON.stringify(m.serialize(window.${h}().board)))`,
+  ludo: (h) => `JSON.stringify(window.${h}().g)`,
+  yacht: (h) => `JSON.stringify(window.${h}().g)`,
+};
+
+const LABELS_CHECK = `(() => {
+  const problems = [];
+  const seen = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[hidden], [inert]'); };
+  for (const el of document.querySelectorAll('button, [role=button], a[href]')) {
+    if (!seen(el)) continue;
+    const text = el.textContent.trim();
+    const named = el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.getAttribute('title');
+    if (!/[\\p{L}\\p{N}]/u.test(text) && !named) problems.push('icon-only control has no label: ' + (el.className || el.tagName) + ' "' + text + '"');
+  }
+  for (const el of document.querySelectorAll('[role=button]:not(button)')) if (seen(el) && el.tabIndex < 0) problems.push('role=button cannot be focused: ' + el.className);
+  return problems;
+})()`;
+
+// Visible controls a keyboard user must reach, each tagged with an index so focus can be matched.
+const CONTROLS = `(() => {
+  // a control taken out of the Tab order on purpose (tabindex=-1 with aria-disabled, e.g. a Ludo token that can't move) is skipped
+  const all = [...document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, [tabindex]:not([tabindex="-1"])')]
+    .filter((el) => !(el.tabIndex < 0 && el.getAttribute('aria-disabled') === 'true'))
+    .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.disabled && getComputedStyle(el).visibility !== 'hidden' && !el.closest('[hidden], [inert]') && +getComputedStyle(el).opacity > 0.05; });
+  all.forEach((el, i) => (el.dataset.a11y = i));
+  return all.map((el) => el.getAttribute('aria-label') || el.textContent.trim().slice(0, 20) || el.className);
+})()`;
+
+async function a11yOne(browser, base, id) {
+  const problems = [];
+  const page = await browser.newPage(device('1440x900'));
+  const errors = watchErrors(page);
+  try {
+    await page.goto(`${base}?debug`);
+    if (id !== 'shelf') await page.eval(`location.hash = '#/${id}'`);
+    await sleep(1200);
+    for (const step of STEPS[id] || []) {
+      const at = await findButton(page, step.tap);
+      if (at) await page.tap(at.x, at.y);
+      await sleep(400);
+    }
+    // roll once where the game has dice, so the controls that only exist after a roll (score boxes, movable tokens)
+    // are checked too
+    for (const label of KEYBOARD_ROLL[id] || []) {
+      const at = await findButton(page, label);
+      if (at) await page.tap(at.x, at.y);
+      await sleep(1500);
+    }
+    await sleep(800);
+    problems.push(...(await page.eval(LABELS_CHECK)));
+    // Tab: every control gets focus at least once going forward
+    const names = await page.eval(CONTROLS);
+    await page.eval(`document.activeElement?.blur(); document.body.focus()`);
+    const reached = new Set();
+    for (let i = 0; i < names.length * 2 + 4; i++) {
+      await page.key('Tab');
+      const at = await page.eval(`document.activeElement?.dataset?.a11y ?? ''`);
+      if (at !== '') reached.add(+at);
+    }
+    names.forEach((n, i) => reached.has(i) || problems.push(`Tab never reaches "${n}"`));
+    // Settings by keyboard: Enter and Space open it, focus moves in, Escape closes it and focus comes back
+    for (const key of ['Enter', ' ']) {
+      const has = await page.eval(`(() => { const b = [...document.querySelectorAll('button[aria-label=Settings]')].find((x) => x.getBoundingClientRect().width > 0); if (!b) return false; b.focus(); return true; })()`);
+      if (!has) {
+        problems.push('no visible Settings button');
+        break;
+      }
+      await page.key(key);
+      await sleep(400);
+      const open = await page.eval(`(() => { const d = [...document.querySelectorAll('[role=dialog]')].pop(); return d ? (d.contains(document.activeElement) ? 'focus-in' : 'focus-out') : 'none'; })()`);
+      if (open === 'none') problems.push(`${key === ' ' ? 'Space' : key} on Settings opened nothing`);
+      else if (open === 'focus-out') problems.push('the Settings dialog did not take focus');
+      await page.key('Escape');
+      await sleep(400);
+      const after = await page.eval(`[!!document.querySelector('[role=dialog]'), document.activeElement?.getAttribute('aria-label')]`);
+      if (after[0]) problems.push('Escape did not close the Settings dialog');
+      else if (after[1] !== 'Settings') problems.push(`focus did not return to Settings after Escape (it is on ${after[1]})`);
+    }
+    // a control that isn't a real <button> must answer Enter like one: the page changes after the key
+    const custom = await page.eval(`(() => { const b = [...document.querySelectorAll('[role=button]:not(button)')].find((x) => x.tabIndex >= 0 && x.getBoundingClientRect().width > 0 && !x.closest('[role=dialog]')); if (!b) return null;
+      window.__changed = 0; new MutationObserver(() => window.__changed++).observe(document.body, { subtree: true, childList: true, attributes: true, characterData: true }); b.focus(); return b.getAttribute('aria-label') || b.textContent.trim(); })()`);
+    if (custom !== null) {
+      await page.key('Enter');
+      await sleep(400);
+      if (!(await page.eval(`window.__changed`))) problems.push(`Enter on "${custom}" did nothing`);
+    }
+  } catch (e) {
+    problems.push(`smoke: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+  return [...errors, ...problems];
+}
+
+async function resumeOne(browser, base, id) {
+  const problems = [];
+  const hook = HOOKS[id];
+  const page = await browser.newPage(device('412x915'));
+  const errors = watchErrors(page);
+  try {
+    await page.goto(`${base}?autoplay=1`);
+    // the first visit's service worker claims the page and the shelf reloads for it; let that happen first
+    for (let t = 0; t < 8000 && !(await page.eval(`!!navigator.serviceWorker?.controller`).catch(() => false)); t += 250) await sleep(250);
+    await sleep(800);
+    await page.eval(`location.hash = '#/${id}'`);
+    await sleep(1000);
+    for (const step of STEPS[id] || []) {
+      const at = await findButton(page, step.tap);
+      if (at) await page.tap(at.x, at.y);
+      await sleep(400);
+    }
+    // play until the state first changes, so there is something to resume (and the level isn't over yet)
+    const start = await page.eval(DIGEST[id](hook)).catch(() => '');
+    for (let t = 0; t < 8000 && (await page.eval(DIGEST[id](hook)).catch(() => '')) === start; t += 150) await sleep(150);
+    await sleep(300);
+    if ((await page.eval(DIGEST[id](hook)).catch(() => '')) === start) problems.push('the game never changed, so resume was not tested');
+    await page.eval(`window.__before = window.${hook}; history.back()`);
+    await sleep(800);
+    if ((await page.eval(`document.body.dataset.view`)) !== 'shelf') problems.push('back did not return to the shelf');
+    const before = await page.eval(DIGEST[id](hook));
+    // no more frames or timers in this page, so neither autoplay nor the clock moves the reopened game before it is
+    // compared (mount itself is synchronous)
+    await page.eval(`window.requestAnimationFrame = window.setTimeout = window.setInterval = () => 0; history.forward()`);
+    let mounted = false;
+    for (let t = 0; t < 6000 && !mounted; t += 200) {
+      await sleep(200);
+      mounted = await page.eval(`!!window.${hook} && window.${hook} !== window.__before`);
+    }
+    if (!mounted) problems.push('the game did not reopen');
+    else {
+      const after = await page.eval(DIGEST[id](hook));
+      if (after !== before) problems.push(`reopened in a different state (${before.length} vs ${after.length} chars of state)`, ...(process.env.A11Y_DIFF ? [before, after] : []));
+    }
+  } catch (e) {
+    problems.push(`smoke: ${e.message}`);
+  } finally {
+    await page.close();
+  }
+  return [...errors, ...problems];
+}
+
 function num(flag, v, min) {
   const n = Number(v);
   if (!Number.isFinite(n) || n < min) throw new Error(`${flag} wants a number >= ${min}, got ${v}`);
@@ -481,12 +813,12 @@ function num(flag, v, min) {
 }
 
 function parseArgs(argv) {
-  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false };
+  const opts = { games: null, viewports: VIEWPORTS, params: '', autoplay: true, wait: 5, out: join(ROOT, '.work/shots'), jobs: 3, hires: false, sw: false, saves: false, sweep: false, perf: false, a11y: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
     if (a === '--game') opts.games = next().split(',');
-    else if (a === '--viewport') opts.viewports = next().split(',');
+    else if (a === '--viewport') opts.viewports = opts.vpGiven = next().split(',');
     else if (a === '--params') opts.params = next();
     else if (a === '--no-autoplay') opts.autoplay = false;
     else if (a === '--wait') opts.wait = num(a, next(), 0);
@@ -495,6 +827,9 @@ function parseArgs(argv) {
     else if (a === '--hires') opts.hires = true;
     else if (a === '--sw') opts.sw = true;
     else if (a === '--saves') opts.saves = true;
+    else if (a === '--sweep') opts.sweep = true;
+    else if (a === '--perf') opts.perf = true;
+    else if (a === '--a11y') opts.a11y = true;
     else throw new Error(`unknown flag ${a} (see the header of tools/smoke.mjs)`);
   }
   const known = ['shelf', ...games.map((g) => g.id)];
@@ -528,6 +863,51 @@ async function main() {
     const failed = await savesCheck(browser, url, opts.out, opts.jobs, only).finally(() => (browser.close(), server.close()));
     console.log(`${failed ? `${failed} save case(s) failed` : 'all save cases ok'} in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
     process.exit(failed ? 1 : 0);
+  }
+  if (opts.a11y) {
+    let failed = 0;
+    try {
+      const jobs = opts.games.flatMap((id) => [['keyboard', id, a11yOne], ...(id === 'shelf' ? [] : [['resume  ', id, resumeOne]])]);
+      await Promise.all(Array.from({ length: opts.jobs }, async () => {
+        for (let job; (job = jobs.shift()); ) {
+          const [what, id, fn] = job;
+          const problems = await fn(browser, url, id);
+          if (problems.length) failed++;
+          console.log(`${problems.length ? 'FAIL' : 'ok  '} ${what} ${id}`);
+          for (const p of problems) console.log(`       ${p}`);
+        }
+      }));
+    } finally {
+      await browser.close();
+      server.close();
+    }
+    console.log(failed ? `${failed} check(s) failed` : 'all a11y checks ok');
+    process.exit(failed ? 1 : 0);
+  }
+  if (opts.perf) {
+    const only = opts.games.length === games.length + 1 ? null : opts.games;
+    const results = await perfCheck(browser, url, only).finally(() => (browser.close(), server.close()));
+    console.log(`${PERF.viewport}, CPU slowed ${PERF.throttle}x, ${PERF.seconds} s of autoplay each`);
+    console.log('     game      level  frames  median fps  95th pct fps  worst frame ms  script ms (median / 95th)');
+    let bad = 0;
+    for (const r of results) {
+      const fail = r.median < PERF.minFps || r.errors.length;
+      if (fail) bad++;
+      console.log(`${fail ? 'FAIL' : 'ok  '} ${r.id.padEnd(9)} ${String(r.level).padStart(4)} ${String(r.frames).padStart(7)} ${r.median.toFixed(1).padStart(11)} ${r.p95.toFixed(1).padStart(13)} ${r.worst.toFixed(0).padStart(15)}  ${r.js.toFixed(1).padStart(9)} / ${r.js95.toFixed(1)}`);
+      for (const e of r.errors) console.log(`       ${e}`);
+    }
+    process.exit(bad ? 1 : 0);
+  }
+  if (opts.sweep) {
+    const only = opts.games.length === games.length + 1 ? null : opts.games;
+    const results = await sweepCheck(browser, url, opts.out, opts.jobs, only, opts.vpGiven).finally(() => (browser.close(), server.close()));
+    const bad = results.filter((r) => r.problems.length);
+    for (const r of bad) {
+      console.log(`FAIL ${r.vp.padEnd(9)} ${r.id} ${r.level}`);
+      for (const p of r.problems) console.log(`       ${p}`);
+    }
+    console.log(`${bad.length ? `${bad.length} of ${results.length} shot(s) failed` : `all ${results.length} shots ok`} in ${((Date.now() - t0) / 1000).toFixed(1)} s; contact sheet ${join(opts.out, 'index.html')}`);
+    process.exit(bad.length ? 1 : 0);
   }
   const queue = opts.viewports.flatMap((vp) => opts.games.map((id) => ({ ...opts, id, vp })));
   let failed = 0;

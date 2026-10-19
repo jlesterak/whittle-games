@@ -4,7 +4,8 @@
 // drags pan, two fingers pinch, double-tap on empty space toggles fit <-> 2x, the wheel zooms.
 
 import { createBoard, loadBoard, fire, erase, addStar, freeArrows, serialize, STARS } from './board.js';
-import { generateLevel } from './generator.js';
+import { generateLevel, generateDaily } from './generator.js';
+import { clearInProgress, cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
 import { Renderer } from './render.js';
 import { fitStage } from '../../core/stage.js';
 import { cleanSave } from '../../core/save.js';
@@ -12,7 +13,7 @@ import { makeSounds } from './sounds.js';
 
 const DW = 1080;
 const MIN_H = 1760; // design height that must always fit: HUD + end screens + boosters
-const HUD_BOTTOM = 200;
+const TIP_BOTTOM = 290; // .po-tip: one line at top 230; the board stays below it
 const BOOST_TOP = 240; // from the bottom of the stage
 const PRICE = 100; // coins per booster and per "+1 star" (ref 3, 4.3 [G])
 const REWARD = 5; // per star left (ref 3: +5 for a 1-star clear), doubled on hard levels
@@ -46,7 +47,7 @@ const TIPS = {
 const ZOOM_TIP = 'Pinch or double-tap to zoom';
 
 function freshSave() {
-  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, best: {}, zoomTip: false, inProgress: null };
+  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, best: {}, zoomTip: false, inProgress: null, daily: freshDaily() };
 }
 
 export default {
@@ -58,6 +59,7 @@ export default {
     const stored = ctx.store.get();
     const repaired = [];
     const save = cleanSave(stored, freshSave(), repaired);
+    save.daily = cleanDaily(save.daily); // dates, stars and streak checked; old saves get an empty one
     if (repaired.length) ctx.store.keep(stored); // a copy of what was there before it is saved over
     save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
@@ -102,7 +104,7 @@ export default {
         return tiles[k];
       }),
     );
-    const splash = el('div', { class: 'po-splash' }, el('i', { html: ICONS.mascot }), el('b', {}, 'HARD LEVEL'));
+    const splash = el('div', { class: 'po-splash', 'data-over-level': '' }, el('i', { html: ICONS.mascot }), el('b', {}, 'HARD LEVEL'));
     stage.append(hud, banner, tip, row, splash);
 
     // ---- state ----
@@ -119,15 +121,29 @@ export default {
     const later = (ms, fn) => timers.push(setTimeout(fn, ms));
 
     function persist() {
-      save.inProgress = board?.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, board: serialize(board), hint: renderer.hint } : null;
+      const ip = board?.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, board: serialize(board), hint: renderer.hint } : null;
+      // the daily puzzle keeps its own in-progress slot, so the campaign's is never touched (E2)
+      if (level?.daily) save.daily.inProgress = ip && { ...ip, date: level.daily };
+      else save.inProgress = ip;
       ctx.store.set(save);
     }
 
+    // Won but not yet recorded (the end screen, which records it, isn't up): switching levels then would cancel the
+    // pending win, so startLevel waits and leaving the game records it first (E2 verifiers).
+    const winUnrecorded = () => board?.status === 'won' && !overlay;
+    // Leaving the game or the page: a win still waiting for its end screen is recorded before saving.
+    const leaving = () => {
+      if (winUnrecorded()) showWin();
+      persist();
+    };
+    // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
+      if (winUnrecorded()) return; // a won level's result is recorded first (showWin), then any button may move on
+      if (level && board) persist(); // save the level being left (taps only save every 5 s), daily or campaign
       timers.forEach(clearTimeout);
       timers = [];
       closeOverlay();
-      level = generateLevel(n);
+      level = typeof n === 'string' ? generateDaily(n) : generateLevel(n);
       board = createBoard(level);
       if (resume) {
         try {
@@ -154,7 +170,7 @@ export default {
     }
 
     function showTip() {
-      let t = board.removed === 0 ? TIPS[level.n] || '' : '';
+      let t = board.removed === 0 && !level.daily ? TIPS[level.n] || '' : '';
       if (!t && !save.zoomTip && renderer.fitPitch < 24) {
         t = ZOOM_TIP;
         save.zoomTip = true;
@@ -172,17 +188,17 @@ export default {
       const sh = h / f.scale;
       stage.style.height = `${sh}px`;
       stage.style.transform = `translate(${f.offX}px, 0) scale(${f.scale})`;
-      const top = (HUD_BOTTOM + 24) * f.scale;
+      const top = (TIP_BOTTOM + 12) * f.scale;
       const bottom = h - (BOOST_TOP + 16) * f.scale;
       renderer.resize(w, h, Math.min(globalThis.devicePixelRatio || 1, 2), { x: 12, y: top, w: w - 24, h: bottom - top });
     }
 
     // ---- HUD ----
     function updateHud(force) {
-      const key = [level.n, save.coins, mode, shownStars, board.removed, ...Object.values(save.boosters)].join();
+      const key = [level.daily || level.n, save.coins, mode, shownStars, board.removed, ...Object.values(save.boosters)].join();
       if (!force && key === uiKey) return;
       uiKey = key;
-      lvlText.textContent = `LVL ${level.n}`;
+      lvlText.textContent = level.daily ? 'DAILY' : `LVL ${level.n}`;
       hardTab.classList.toggle('show', !!level.hard);
       starEls.forEach((s, i) => s.classList.toggle('on', i < shownStars));
       barFill.style.width = `${(100 * board.removed) / level.arrows.length}%`;
@@ -412,6 +428,15 @@ export default {
       { passive: false },
     );
 
+    // The level again from the start (daily or campaign), and the way back from a daily to the campaign.
+    const restart = () => startLevel(level.daily || level.n);
+    const backToLevels = () => startLevel(save.level, save.inProgress?.level === save.level && save.inProgress.gen === LEVEL_GEN ? save.inProgress : null);
+    function startToday() {
+      const today = localDate();
+      const ip = save.daily.inProgress;
+      startLevel(today, ip?.date === today && ip.gen === LEVEL_GEN ? ip : null);
+    }
+
     // ---- end screens ----
     function closeOverlay() {
       overlay?.remove();
@@ -420,11 +445,12 @@ export default {
 
     function showWin() {
       const stars = Math.max(1, board.stars);
+      if (level.daily) return showDailyWin(stars);
       const reward = REWARD * stars * (level.hard ? 2 : 1);
       save.coins += reward;
       save.best[level.n] = Math.max(save.best[level.n] || 0, stars);
       save.level = Math.max(save.level, level.n + 1);
-      save.inProgress = null;
+      clearInProgress(save, level);
       ctx.store.set(save);
       sounds.win();
       const rm = S.get('reducedMotion');
@@ -442,7 +468,7 @@ export default {
         el(
           'div',
           { class: 'po-row' },
-          stars < STARS ? el('button', { class: 'po-btn po-purple', onclick: () => startLevel(level.n) }, 'Replay') : null,
+          stars < STARS ? el('button', { class: 'po-btn po-purple', onclick: restart }, 'Replay') : null,
           el('button', { class: 'po-btn po-green', onclick: () => startLevel(level.n + 1) }, 'Next'),
         ),
       );
@@ -451,6 +477,34 @@ export default {
     }
 
     // Out of Stars (ref 3): +1 star for coins keeps the board, or give up.
+    // The daily puzzle's win: results and streak go to save.daily only (core/daily.js winDaily), no coins, no
+    // campaign level or best.
+    function showDailyWin(stars) {
+      save.daily = winDaily(save, level.daily, stars).daily;
+      ctx.store.set(save);
+      sounds.win();
+      const streak = currentStreak(save.daily, save.daily.lastDate); // the streak as it now stands
+      overlay = el(
+        'div',
+        { class: 'po-end po-win' },
+        el(
+          'div',
+          { class: 'po-bigstars' },
+          [0, 1, 2].map((i) => el('i', { class: i < stars ? 'on' : '', style: `animation-delay:${0.2 + i * 0.25}s`, html: ICONS.star })),
+        ),
+        el('div', { class: 'po-pill' }, el('span', {}, `DAILY ${level.daily}`), el('b', {}, 'COMPLETED!')),
+        el('div', { class: 'po-reward' }, el('h3', {}, 'STREAK'), el('p', {}, `${streak} day${streak === 1 ? '' : 's'}`)),
+        el(
+          'div',
+          { class: 'po-row' },
+          stars < STARS ? el('button', { class: 'po-btn po-purple', onclick: restart }, 'Replay') : null,
+          el('button', { class: 'po-btn po-green', onclick: backToLevels }, 'Levels'),
+        ),
+      );
+      stage.append(overlay);
+      updateHud(true);
+    }
+
     function showOutOfStars() {
       sounds.lose();
       const afford = save.coins >= PRICE;
@@ -495,7 +549,7 @@ export default {
 
     function showFailed() {
       closeOverlay();
-      save.inProgress = null;
+      clearInProgress(save, level);
       ctx.store.set(save);
       overlay = el(
         'div',
@@ -503,13 +557,18 @@ export default {
         el('h1', { class: 'po-failed' }, 'LEVEL FAILED'),
         el('i', { class: 'po-cracked big', html: ICONS.cracked }),
         el('p', {}, `${board.removed} of ${level.arrows.length} arrows out`),
-        el('button', { class: 'po-btn po-green', onclick: () => startLevel(level.n) }, 'Replay'),
+        el('button', { class: 'po-btn po-green', onclick: restart }, 'Replay'),
       );
       stage.append(overlay);
     }
 
     function openSettings() {
-      ctx.openSettings([{ label: 'Restart level', onClick: (close) => (close(), startLevel(level.n)) }]);
+      ctx.openSettings([
+        { label: 'Restart level', onClick: (close) => (close(), restart()) },
+        level.daily
+          ? { label: 'Back to levels', onClick: (close) => (close(), backToLevels()) }
+          : { label: "Today's puzzle", onClick: (close) => (close(), startToday()) },
+      ]);
     }
 
     // ---- loop ----
@@ -543,7 +602,7 @@ export default {
       if (document.hidden) persist();
     };
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('pagehide', persist);
+    window.addEventListener('pagehide', leaving);
     const ro = new ResizeObserver(resize);
     ro.observe(root);
     saveTimer = setInterval(persist, 5000);
@@ -554,19 +613,21 @@ export default {
     const ip = save.inProgress;
     const jump = +params.get('level'); // ?level=N to jump (testing)
     if (jump > 0) save.level = jump;
-    startLevel(save.level, !jump && ip && ip.level === save.level && ip.gen === LEVEL_GEN ? ip : null);
+    const dailyParam = params.get('daily'); // ?daily=YYYY-MM-DD opens that day's puzzle (testing, links)
+    if (isDate(dailyParam)) startLevel(dailyParam);
+    else startLevel(save.level, !jump && ip && ip.level === save.level && ip.gen === LEVEL_GEN ? ip : null);
     raf = requestAnimationFrame(loop);
 
     return {
       unmount() {
-        persist();
+        leaving();
         cancelAnimationFrame(raf);
         clearInterval(saveTimer);
         timers.forEach(clearTimeout);
         ro.disconnect();
         offSettings();
         document.removeEventListener('visibilitychange', onVis);
-        window.removeEventListener('pagehide', persist);
+        window.removeEventListener('pagehide', leaving);
         document.body.style.background = '';
       },
     };

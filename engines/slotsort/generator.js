@@ -222,8 +222,10 @@ export function competentOrder(boardDef, rng, perPick = 0) {
   return order;
 }
 
-export function generate(n, game) {
-  const seed = hashSeed(game.id, n);
+// seedKey: what the seed hashes besides the game id; the level number for the campaign, 'daily:<date>' for a daily
+// puzzle (same knobs as level n, a different board).
+export function generate(n, game, seedKey = n) {
+  const seed = hashSeed(game.id, seedKey);
   const rng = makeRng(seed);
   let best = null;
   let bestGap = Infinity;

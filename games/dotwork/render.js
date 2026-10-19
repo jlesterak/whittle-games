@@ -155,6 +155,15 @@ export class Renderer {
     Object.assign(this, this.clamped({ pitch: this.pitch, ox: this.ox, oy: this.oy }));
     this.dirty = true;
   }
+  // The board at the fitted zoom and the area it must stay in, in CSS px (smoke --sweep checks it).
+  bounds() {
+    const f = this.fitTarget();
+    const { x, y, w, h } = this.view;
+    return [
+      { name: 'board area', x0: x, y0: y, x1: x + w, y1: y + h },
+      { name: 'board', x0: f.ox, y0: f.oy, x1: f.ox + this.level.W * f.pitch, y1: f.oy + this.level.H * f.pitch, inside: { x0: x, y0: y, x1: x + w, y1: y + h } },
+    ];
+  }
   toBoard(sx, sy) {
     return [(sx - this.ox) / this.pitch, (sy - this.oy) / this.pitch];
   }

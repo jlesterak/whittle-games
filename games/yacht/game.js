@@ -623,8 +623,10 @@ export default {
               {
                 class: `cur can${s === 0 ? ' zero' : ''}${isSel ? ' sel' : ''}`,
                 role: 'button',
+                tabindex: 0,
                 'aria-label': `${LABELS[cat]}${triple ? ` times ${c.col + 1}` : ''}: ${s}`,
                 onclick: () => tapCell(c.col, cat),
+                onkeydown: (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), tapCell(c.col, cat)),
               },
               String(s),
             );

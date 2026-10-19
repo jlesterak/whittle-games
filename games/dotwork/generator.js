@@ -286,12 +286,14 @@ function colour(k, paths, rng, n) {
 
 const TRIES = 6;
 
-export function generateLevel(n) {
+// seedKey: what the seeds hash besides the game name; the level number for the campaign, 'daily:<date>' for the
+// daily puzzle (same knobs, different board).
+export function generateLevel(n, seedKey = n) {
   const k = knobs(n);
   const mask = makeMask(k);
   let best = null;
   for (let s = 0; s < TRIES; s++) {
-    const seed = hashSeed('dotwork', n, s);
+    const seed = hashSeed('dotwork', seedKey, s);
     const rng = makeRng(seed);
     const oriented = orient(k, partition(k, mask, rng), rng);
     if (!oriented) continue;
@@ -307,4 +309,11 @@ export function generateLevel(n) {
   }
   if (!best) throw new Error(`dotwork: level ${n} could not be generated`);
   return { ...best.lvl, meta: best.meta };
+}
+
+// The daily puzzle (E2): level DAILY_N's difficulty (mid-campaign, not a hard or breather level), seeded from the
+// local date so every phone gets the same board that day. level.daily holds the date.
+export const DAILY_N = 42;
+export function generateDaily(date) {
+  return { ...generateLevel(DAILY_N, `daily:${date}`), daily: date };
 }

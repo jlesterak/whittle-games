@@ -6,7 +6,7 @@
 // (the shelf's "Update ready" button) or until every tab of the old version has closed: a running page never
 // mixes old and new files.
 
-const VERSION = 'a52573c13c90';
+const VERSION = '1f1158b5ebd7';
 const CACHE = `whittle-${VERSION}`;
 // prettier-ignore
 const FILES = [
@@ -19,9 +19,11 @@ const FILES = [
   './icon-512.png',
   './core/app.js',
   './core/audio.js',
+  './core/daily.js',
   './core/dice-sounds.js',
   './core/dice-view.js',
   './core/dice.js',
+  './core/fps.js',
   './core/haptics.js',
   './core/icons.js',
   './core/rng.js',

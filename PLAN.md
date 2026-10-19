@@ -181,6 +181,24 @@ tools/precache.mjs         (exists) service-worker file list
 - **Verify:** `node tools/smoke.mjs --perf`
 - **Depends:** R3
 
+### P7b. Frame rate on the phone
+- **Why:** P7 measured every game under 50 fps median at 4x CPU throttle in the sandbox (DPR 3: Beadloom 55/60 7.5,
+  Purl 60 15.0, Dotwork 80/208 20.0; DPR 1, one vsync step of spread between runs: Beadloom 60 20.0, Purl 60 59.9, Dotwork 30.0-59.9). Most of that is software
+  rasterisation a phone does on its GPU (docs/PERF.md), so the sandbox can't say whether the phone is under budget.
+- **Do:** a `?fps` overlay (median and 95th percentile fps over the last 2 s, in a corner, off by default) so the owner
+  can read the frame rate on the phone. Then, only if the phone is under 50 fps: Beadloom draws each bead row as one
+  pre-drawn row sprite (5x fewer `drawImage` calls); the games stack their cached static layer as a second canvas
+  under the live one instead of copying it each frame. Re-measure after each change.
+- **Acceptance:** the overlay works in all three canvas games; P7bh has numbers from the phone; any change made shows
+  a measured gain in `--perf` and on the phone.
+- **Verify:** `node tools/smoke.mjs --perf`; open `?fps&autoplay=1&level=60#/beadloom` and read the overlay.
+- **Depends:** P7
+
+### P7bh. [HUMAN] Read the frame rate on the phone
+- Owner opens `?fps&autoplay=1&level=60#/beadloom`, `...#/purl` and `?fps&autoplay=1&level=208#/dotwork` on the
+  phone and writes the median / 95th numbers in TODO.md Inbox.
+- **Depends:** P7b (overlay)
+
 ### P8. Accessibility and input basics
 - **Do:** every icon-only button has an `aria-label` (smoke check); modals take focus, Escape closes non-sticky
   ones; desktop keyboard: Tab reaches every control, Enter / Space activate them; the Android back gesture

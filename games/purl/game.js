@@ -1,7 +1,8 @@
 // Purl: game module. Canvas playfield (render.js) plus a DOM overlay scaled to the same
 // 1080x2316 design space for the HUD, boosters and end screens. Fixed-step sim, rAF render.
 
-import { createSim, generateLevel, isHard, BOBBIN_ROWS } from './rules.js';
+import { createSim, generateLevel, generateDaily, isHard, BOBBIN_ROWS } from './rules.js';
+import { clearInProgress, cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
 import { DT } from '../../engines/slotsort/sim.js';
 import { Renderer, FIT } from './render.js';
 import { fitStage, canvasDpr } from '../../core/stage.js';
@@ -30,7 +31,7 @@ const ICONS = {
 };
 
 function freshSave() {
-  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, cleared: 0, inProgress: null };
+  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, cleared: 0, inProgress: null, daily: freshDaily() };
 }
 
 export default {
@@ -42,6 +43,7 @@ export default {
     const stored = ctx.store.get();
     const repaired = [];
     const save = cleanSave(stored, freshSave(), repaired);
+    save.daily = cleanDaily(save.daily); // dates and streak checked; old saves get an empty one
     if (repaired.length) ctx.store.keep(stored); // a copy of what was there before it is saved over
     save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
@@ -59,7 +61,7 @@ export default {
     const coinText = el('span');
     const coins = el('div', { class: 'ck-coins' }, el('i', { html: ICONS.coin }), coinText);
     const modeTip = el('div', { class: 'ck-tip' });
-    const intro = el('div', { class: 'ck-intro' }, el('i', { html: ICONS.skull }), el('b', {}, 'HARD LEVEL'));
+    const intro = el('div', { class: 'ck-intro', 'data-over-level': '' }, el('i', { html: ICONS.skull }), el('b', {}, 'HARD LEVEL'));
     const turboBadge = el('div', { class: 'ck-turbo', 'aria-hidden': 'true' }, '»');
     const boosterBtns = {};
     const badges = {};
@@ -88,14 +90,28 @@ export default {
     let turbo = false;
 
     function persist() {
-      save.inProgress = sim && sim.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, sim: sim.serialize() } : null;
+      const ip = sim && sim.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, sim: sim.serialize() } : null;
+      // the daily puzzle keeps its own in-progress slot, so the campaign's is never touched (E2)
+      if (level?.daily) save.daily.inProgress = ip && { ...ip, date: level.daily };
+      else save.inProgress = ip;
       ctx.store.set(save);
     }
 
+    // Won but not yet recorded (the end screen, which records it, isn't up): switching levels then would cancel the
+    // pending win, so startLevel waits and leaving the game records it first (E2 verifiers).
+    const winUnrecorded = () => sim?.status === 'won' && !overlay;
+    // Leaving the game or the page: a win still waiting for its end screen is recorded before saving.
+    const leaving = () => {
+      if (winUnrecorded()) showWin();
+      persist();
+    };
+    // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
+      if (winUnrecorded()) return; // a won level's result is recorded first (showWin), then any button may move on
+      if (level && sim) persist(); // save the level being left (taps only save every 5 s), daily or campaign
       clearTimeout(endTimer);
       closeOverlay();
-      level = generateLevel(n);
+      level = typeof n === 'string' ? generateDaily(n) : generateLevel(n);
       sim = createSim(level);
       if (resume) {
         try {
@@ -132,7 +148,7 @@ export default {
       const key = [level.n, save.coins, mode, waiting(), sim.supply.hooksFree(), sim.slots.indexOf(null) >= 0, sim.status, ...Object.values(save.boosters)].join();
       if (!force && key === uiKey) return;
       uiKey = key;
-      levelPill.textContent = `Level ${level.n}`;
+      levelPill.textContent = level.daily ? 'Daily' : `Level ${level.n}`;
       hardBadge.classList.toggle('show', !!level.hard);
       coinText.textContent = save.coins.toLocaleString('en');
       for (const k of Object.keys(boosterBtns)) {
@@ -152,7 +168,7 @@ export default {
     };
     function setMode(m) {
       mode = m;
-      const tip = !m && sim.board.picks === 0 ? TIPS[level.n] : '';
+      const tip = !m && sim.board.picks === 0 && !level.daily ? TIPS[level.n] : '';
       modeTip.textContent = m === 'fill' ? 'Tap a bobbin in a slot: scissors cut its yarn from anywhere' : m === 'lift' ? 'Tap any bobbin to pull it straight to a slot' : tip || '';
       modeTip.classList.toggle('show', !!m || !!tip);
       renderer.liftMode = m === 'lift';
@@ -280,7 +296,40 @@ export default {
       overlay = null;
     }
 
+    const clearProgress = () => clearInProgress(save, level);
+    // The level again from the start (daily or campaign), and the way back from a daily to the campaign.
+    const restart = () => startLevel(level.daily || level.n);
+    function backToLevels() {
+      const ip = save.inProgress;
+      startLevel(save.level, ip && ip.level === save.level && ip.gen === LEVEL_GEN ? ip.sim : null);
+    }
+    function startToday() {
+      const today = localDate();
+      const ip = save.daily.inProgress;
+      startLevel(today, ip?.date === today && ip.gen === LEVEL_GEN ? ip.sim : null);
+    }
+
+    // The daily puzzle's win: only save.daily changes (core/daily.js winDaily): no coins, no campaign level, no
+    // cleared count or gift. No stars in this game, so a win without boosters counts as 3 and any other as 1.
+    function showDailyWin() {
+      save.daily = winDaily(save, level.daily, sim.boostersUsed === 0 ? 3 : 1).daily;
+      ctx.store.set(save);
+      sounds.win();
+      const streak = currentStreak(save.daily, save.daily.lastDate); // the streak as it now stands
+      overlay = el(
+        'div',
+        { class: 'ck-end ck-win' },
+        el('h1', { class: 'ck-stamp' }, 'DAILY', el('br'), 'DONE!'),
+        el('p', { class: 'ck-reward' }, `Streak: ${streak} day${streak === 1 ? '' : 's'}`),
+        el('p', { class: 'ck-note' }, level.daily),
+        el('button', { class: 'ck-btn ck-green', onclick: backToLevels }, 'Levels'),
+      );
+      stage.append(overlay);
+      updateHud(true);
+    }
+
     function showWin() {
+      if (level.daily) return showDailyWin();
       const reward = level.hard ? HARD_REWARD : REWARD;
       const from = save.coins;
       save.coins += reward;
@@ -291,7 +340,7 @@ export default {
         save.boosters[gift]++;
       }
       save.level = level.n + 1;
-      save.inProgress = null;
+      clearProgress();
       ctx.store.set(save);
       sounds.win();
       overlay = el(
@@ -353,7 +402,7 @@ export default {
 
     function showFailed() {
       closeOverlay();
-      save.inProgress = null;
+      clearProgress();
       ctx.store.set(save);
       overlay = el(
         'div',
@@ -361,18 +410,23 @@ export default {
         el('h1', { class: 'ck-failed' }, 'LEVEL FAILED'),
         el('div', { class: 'ck-heart' }, '\u{1F494}'),
         el('p', {}, 'You did not complete the level goals'),
-        el('button', { class: 'ck-btn ck-green', onclick: () => startLevel(level.n) }, 'Try Again'),
+        el('button', { class: 'ck-btn ck-green', onclick: restart }, 'Try Again'),
       );
       stage.append(overlay);
     }
 
     function confirmRestart() {
-      if (sim.board.picks === 0 || sim.status !== 'playing') return startLevel(level.n);
-      modal({ title: 'Restart level?', actions: [{ label: 'Cancel' }, { label: 'Restart', primary: true, onClick: (close) => (close(), startLevel(level.n)) }] });
+      if (sim.board.picks === 0 || sim.status !== 'playing') return restart();
+      modal({ title: 'Restart level?', actions: [{ label: 'Cancel' }, { label: 'Restart', primary: true, onClick: (close) => (close(), restart()) }] });
     }
 
     function openSettings() {
-      ctx.openSettings([{ label: 'Restart level', onClick: (close) => (close(), startLevel(level.n)) }]);
+      ctx.openSettings([
+        { label: 'Restart level', onClick: (close) => (close(), restart()) },
+        level.daily
+          ? { label: 'Back to levels', onClick: (close) => (close(), backToLevels()) }
+          : { label: "Today's puzzle", onClick: (close) => (close(), startToday()) },
+      ]);
     }
 
     function setTurbo(on) {
@@ -410,7 +464,7 @@ export default {
             sounds.balloon();
             break;
           case 'win':
-            save.inProgress = null;
+            clearProgress();
             endTimer = setTimeout(showWin, 500);
             break;
           case 'lose':
@@ -466,7 +520,7 @@ export default {
       if (document.hidden) persist();
     };
     document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('pagehide', persist);
+    window.addEventListener('pagehide', leaving);
     const ro = new ResizeObserver(resize);
     ro.observe(root);
     saveTimer = setInterval(persist, 5000);
@@ -476,19 +530,21 @@ export default {
     const ip = save.inProgress;
     const jump = +params.get('level'); // ?level=N to jump (testing)
     if (jump > 0) save.level = jump;
-    startLevel(save.level, !jump && ip && ip.level === save.level && ip.gen === LEVEL_GEN ? ip.sim : null);
+    const dailyParam = new URLSearchParams(location.search).get('daily'); // ?daily=YYYY-MM-DD opens that day's puzzle
+    if (isDate(dailyParam)) startLevel(dailyParam);
+    else startLevel(save.level, !jump && ip && ip.level === save.level && ip.gen === LEVEL_GEN ? ip.sim : null);
     raf = requestAnimationFrame(loop);
 
     return {
       unmount() {
-        persist();
+        leaving();
         cancelAnimationFrame(raf);
         clearInterval(saveTimer);
         clearTimeout(endTimer);
         ro.disconnect();
         offSettings();
         document.removeEventListener('visibilitychange', onVis);
-        window.removeEventListener('pagehide', persist);
+        window.removeEventListener('pagehide', leaving);
         document.body.style.background = '';
       },
     };

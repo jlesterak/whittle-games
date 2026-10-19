@@ -7,6 +7,7 @@ import * as save from './save.js';
 import { audio } from './audio.js';
 import { haptics } from './haptics.js';
 import { el, modal, toast, switchRow, choiceRow } from './ui.js';
+import { startFpsMeter } from './fps.js';
 
 const app = document.getElementById('app');
 let current = null; // { meta, game, instance }
@@ -29,6 +30,17 @@ function route() {
   const meta = games.find((g) => g.id === id);
   if (meta) openGame(meta);
   else showShelf();
+}
+
+// The card's progress label (games/index.js summary), or nothing if the save has none or can't be read.
+function progressPill(g) {
+  let label = null;
+  try {
+    label = g.summary?.(save.store(g.id).get());
+  } catch (e) {
+    console.warn(`summary(${g.id})`, e);
+  }
+  return label ? el('span', { class: 'card-pill' }, label) : null;
 }
 
 function showShelf() {
@@ -60,7 +72,7 @@ function showShelf() {
             'a',
             { class: 'card', href: `#/${g.id}` },
             el('div', { class: 'card-icon', html: g.icon }),
-            el('div', {}, el('h3', {}, g.title), el('p', {}, g.blurb)),
+            el('div', {}, el('h3', {}, g.title), el('p', {}, g.blurb), progressPill(g)),
           ),
         ),
       ),
@@ -236,6 +248,7 @@ applyMotion();
 window.addEventListener('pointerdown', () => audio.unlock(), { once: true, capture: true });
 window.addEventListener('hashchange', route);
 route();
+if (new URLSearchParams(location.search).has('fps')) startFpsMeter(); // frame-rate overlay for phone checks (P7b)
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   navigator.serviceWorker.addEventListener('controllerchange', () => {

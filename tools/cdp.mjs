@@ -213,6 +213,14 @@ async function newPage(conn, { width = 412, height = 915, dpr = 1, mobile = fals
         await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 });
       }
     },
+    // A key press (Tab, Enter, Escape, ' ' for Space), with Shift if asked.
+    async key(key, { shift = false } = {}) {
+      const codes = { Tab: ['Tab', 9], Enter: ['Enter', 13], Escape: ['Escape', 27], ' ': ['Space', 32] };
+      const [code, vk] = codes[key];
+      const base = { key, code, windowsVirtualKeyCode: vk, modifiers: shift ? 8 : 0 };
+      await send('Input.dispatchKeyEvent', { type: 'keyDown', ...base, ...(key === 'Enter' && { text: '\r' }), ...(key === ' ' && { text: ' ' }) });
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
+    },
     async close() {
       off();
       await conn.send('Target.closeTarget', { targetId }).catch(() => {});

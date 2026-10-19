@@ -8,20 +8,34 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 ## [IN PROGRESS]
 
 ## [PENDING]
-- P6 Layout sweep (owner, 2026-10-09: Beadloom "still a little cut off in spots")
 - P6h [HUMAN] Check clipping on the phone
-- P7 Frame-rate budget
-- P8 Accessibility and input basics
+- P7b [BLOCKED: needs P7bh phone numbers] ?fps overlay done (core/fps.js, shared with --perf); fixes wait for the phone
+- P7bh [HUMAN] Read the frame rate on the phone: open `?fps&autoplay=1&level=60#/beadloom`, `#/purl` and
+  `?fps&autoplay=1&level=208#/dotwork`, write median / slow-5% numbers in the Inbox
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
-- E1 Progress on the shelf
-- E2 Daily puzzle
 - E3 Farkle
 - E4 Backgammon
 - E5 Cards core and Klondike
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-19: E2 daily puzzle (Dotwork, Beadloom, Purl): date-seeded mid-difficulty level, own save slot, streak and
+  30 days (core/daily.js); campaign progress untouched in real play (lose, restart, switch, back, mid-win). Five fresh
+  verifiers; four found real ways to lose progress, all fixed (clearInProgress, save-before-switch, win guard)
+- 2026-10-18: E1 shelf progress: summary(blob) per game in games/index.js (Level N, Game in progress, Best N /
+  Best N (Triple)), pill on the card; malformed saves give no label. Fresh verifier PASS (real play driven headless)
+- 2026-10-18: P8 accessibility: smoke --a11y (labels, Tab reach after a roll, Enter/Space on Settings and custom
+  buttons, back-then-reopen resumes all 5 games); modals take focus, trap Tab, close on Escape; focus ring; Yacht
+  score boxes by keyboard; Beadloom crate hit ±80 x ±82 (44+ CSS px on the portrait sizes). Canvas boards stay
+  tap-only. Second fresh verifier PASS
+- 2026-10-18: P7 frame-rate budget: smoke --perf (4x throttle, DPR 3, 10 s autoplay, rAF intervals + script ms),
+  docs/PERF.md. All five heavy levels are under 50 fps here (7.5-20 fps), mostly software raster with no GPU, so
+  fix item P7b (phone fps overlay, then targeted fixes) holds the numbers. Fresh verifier PASS
+- 2026-10-18: P6 layout sweep: smoke --sweep (3 games x 13-15 levels x 5 viewports, renderer bounds() + HUD on screen,
+  apart and off the level, contact sheet); Dotwork board now starts below its tip line (tips covered the top row).
+  Owner's Beadloom clipping not reproduced at level start; not covered: tips/banners shown mid-play, Purl side HUD
+  may sit on a wide frame's wood (not the picture). Five fresh verifiers; the last PASS
 - 2026-10-14: D2s generated boards replace the three rebuilt from recordings (level 208 is ordinary, Dotwork
   LEVEL_GEN 2); the tests now check reveal timing, real swaps, dispenser order and peel layers (mutation-checked)
 - 2026-10-14: P5 Beadloom feeder joins are rounded fillets on every wall layer, shadow drawn once at 25 %; track

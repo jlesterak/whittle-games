@@ -121,3 +121,15 @@ export function generateLevel(n) {
   }
   return structuredClone(cache.get(n));
 }
+
+// The daily puzzle (E2): level DAILY_N's knobs (mid-campaign, not a hard level), seeded from the local date so every
+// phone gets the same board that day. Winnable: the engine keeps only boards its solver solved. level.daily = date.
+export const DAILY_N = 32;
+export function generateDaily(date) {
+  const key = `daily:${date}`;
+  if (!cache.has(key)) {
+    cache.set(key, { ...generate(DAILY_N, GAME, key), daily: date });
+    if (cache.size > 8) cache.delete(cache.keys().next().value);
+  }
+  return structuredClone(cache.get(key));
+}
