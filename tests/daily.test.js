@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto';
 import { cleanDaily, currentStreak, dayBefore, freshDaily, isDate, localDate, winDaily, DAILY_KEEP } from '../core/daily.js';
 import { generateDaily, DAILY_N } from '../games/dotwork/generator.js';
 import { peel } from '../games/dotwork/board.js';
+import * as beadloom from '../games/beadloom/rules.js';
+import * as purl from '../games/purl/rules.js';
 
 const hash = (lvl) => createHash('sha256').update(JSON.stringify(lvl.arrows)).digest('hex').slice(0, 16);
 
@@ -26,6 +28,18 @@ test('Dotwork: daily levels are winnable and mid difficulty', () => {
     assert.equal(lvl.hard, false);
   }
 });
+
+for (const [name, rules] of [['Beadloom', beadloom], ['Purl', purl]]) {
+  test(`${name}: the daily level is fixed per date, differs by date, is not the campaign level, and was solved`, () => {
+    const a = rules.generateDaily('2026-01-01');
+    const key = (l) => JSON.stringify(l.board);
+    assert.equal(key(a), key(rules.generateDaily('2026-01-01')));
+    assert.notEqual(key(a), key(rules.generateDaily('2026-01-02')));
+    assert.notEqual(key(a), key(rules.generateLevel(rules.DAILY_N)));
+    assert.equal(a.daily, '2026-01-01');
+    assert.ok(a.meta.solution?.length > 0 && !a.meta.fallback, 'the solver found a winning order');
+  });
+}
 
 test('dates: local calendar day, validation, day before across month and year ends', () => {
   assert.equal(localDate(new Date(2026, 0, 5, 23, 59)), '2026-01-05');

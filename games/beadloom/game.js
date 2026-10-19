@@ -1,7 +1,8 @@
 // Beadloom: game module. Canvas playfield (render.js) plus a DOM overlay scaled to the same
 // 1080x2316 design space for the HUD, boosters and end screens. Fixed-step sim, rAF render.
 
-import { createSim, generateLevel, difficulty, CRATE_ROWS } from './rules.js';
+import { createSim, generateLevel, generateDaily, difficulty, CRATE_ROWS } from './rules.js';
+import { cleanDaily, currentStreak, freshDaily, isDate, localDate, winDaily } from '../../core/daily.js';
 import { DT } from '../../engines/slotsort/sim.js';
 import { Renderer, FIT } from './render.js';
 import { fitStage, canvasDpr } from '../../core/stage.js';
@@ -31,7 +32,7 @@ const ICONS = {
 };
 
 function freshSave() {
-  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, cleared: 0, inProgress: null };
+  return { level: 1, coins: 0, boosters: { ...START_BOOSTERS }, cleared: 0, inProgress: null, daily: freshDaily() };
 }
 
 export default {
@@ -45,6 +46,7 @@ export default {
     const stored = ctx.store.get();
     const repaired = [];
     const save = cleanSave(stored, freshSave(), repaired);
+    save.daily = cleanDaily(save.daily); // dates and streak checked; old saves get an empty one
     if (repaired.length) ctx.store.keep(stored); // a copy of what was there before it is saved over
     save.level = Math.max(1, save.level);
     const sounds = makeSounds(ctx.audio, ctx.haptics);
@@ -111,14 +113,18 @@ export default {
     let turbo = false; // win unavoidable: fast-forward to the end
 
     function persist() {
-      save.inProgress = sim && sim.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, sim: sim.serialize() } : null;
+      const ip = sim && sim.status === 'playing' ? { level: level.n, gen: LEVEL_GEN, sim: sim.serialize() } : null;
+      // the daily puzzle keeps its own in-progress slot, so the campaign's is never touched (E2)
+      if (level?.daily) save.daily.inProgress = ip && { ...ip, date: level.daily };
+      else save.inProgress = ip;
       ctx.store.set(save);
     }
 
+    // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
       clearTimeout(endTimer);
       closeOverlay();
-      level = generateLevel(n);
+      level = typeof n === 'string' ? generateDaily(n) : generateLevel(n);
       sim = createSim(level);
       if (resume) {
         try {
@@ -152,7 +158,7 @@ export default {
       const key = [level.n, save.coins, sp, mode, slotted, sim.slots.length, sim.status, ...Object.values(save.boosters)].join();
       if (!force && key === uiKey) return;
       uiKey = key;
-      levelText.textContent = `Level ${level.n}`;
+      levelText.textContent = level.daily ? 'Daily' : `Level ${level.n}`;
       const tag = levelTag_(level.n);
       levelTag.textContent = tag || '';
       levelPill.classList.toggle('hard', !!tag);
@@ -173,7 +179,7 @@ export default {
     const TIPS = { 1: 'Tap a glowing crate to send it to a slot', 2: 'Beads of a crate\'s colour pour in as they pass the spout' };
     function setMode(m) {
       mode = m;
-      const tip = !m && sim.board.picks === 0 ? TIPS[level.n] : '';
+      const tip = !m && sim.board.picks === 0 && !level.daily ? TIPS[level.n] : '';
       modeTip.textContent = m === 'fill' ? 'Tap a crate in a slot to fill it' : m ? '' : tip || '';
       modeTip.classList.toggle('show', m === 'fill' || (!m && !!tip));
       liftTip.classList.toggle('show', m === 'lift');
@@ -311,7 +317,40 @@ export default {
       overlay = null;
     }
 
+    const clearProgress = () => (level?.daily ? (save.daily.inProgress = null) : (save.inProgress = null));
+    // The level again from the start (daily or campaign), and the way back from a daily to the campaign.
+    const restart = () => startLevel(level.daily || level.n);
+    function backToLevels() {
+      const ip = save.inProgress;
+      startLevel(save.level, ip && ip.level === save.level && (ip.gen || 1) === LEVEL_GEN ? ip.sim : null);
+    }
+    function startToday() {
+      const today = localDate();
+      const ip = save.daily.inProgress;
+      startLevel(today, ip?.date === today && ip.gen === LEVEL_GEN ? ip.sim : null);
+    }
+
+    // The daily puzzle's win: only save.daily changes (core/daily.js winDaily): no coins, no campaign level, no
+    // cleared count or gift. No stars in this game, so a win without boosters counts as 3 and any other as 1.
+    function showDailyWin() {
+      save.daily = winDaily(save, level.daily, sim.boostersUsed === 0 ? 3 : 1).daily;
+      ctx.store.set(save);
+      sounds.win();
+      const streak = currentStreak(save.daily, level.daily); // as of the puzzle's day
+      overlay = el(
+        'div',
+        { class: 'bo-end bo-win' },
+        el('h1', {}, 'Daily done'),
+        el('p', { class: 'bo-reward' }, `Streak: ${streak} day${streak === 1 ? '' : 's'}`),
+        el('p', { class: 'bo-note' }, level.daily),
+        el('button', { class: 'bo-next', onclick: backToLevels }, 'Levels'),
+      );
+      stage.append(overlay);
+      updateHud(true);
+    }
+
     function showWin() {
+      if (level.daily) return showDailyWin();
       const perfect = sim.boostersUsed === 0;
       const reward = perfect ? REWARD * 2 : REWARD;
       save.coins += reward;
@@ -322,7 +361,7 @@ export default {
         save.boosters[gift]++;
       }
       save.level = level.n + 1;
-      save.inProgress = null;
+      clearProgress();
       ctx.store.set(save);
       sounds.win();
       const pile = el('div', { class: 'bo-pile' });
@@ -397,14 +436,19 @@ export default {
           el('h1', {}, 'Level failed'),
           el('div', { class: 'bo-mini' }, sim.slots.map((sl) => el('i', { style: sl ? `background:${COLORS[sl.color].crate}` : '' }))),
           el('p', {}, 'Every slot is waiting for a colour the ring can no longer bring.'),
-          el('button', { class: 'bo-next', onclick: () => startLevel(level.n) }, 'Try again'),
+          el('button', { class: 'bo-next', onclick: restart }, 'Try again'),
         ),
       );
       stage.append(overlay);
     }
 
     function openSettings() {
-      ctx.openSettings([{ label: 'Restart level', onClick: (close) => (close(), startLevel(level.n)) }]);
+      ctx.openSettings([
+        { label: 'Restart level', onClick: (close) => (close(), restart()) },
+        level.daily
+          ? { label: 'Back to levels', onClick: (close) => (close(), backToLevels()) }
+          : { label: "Today's puzzle", onClick: (close) => (close(), startToday()) },
+      ]);
     }
 
     function setTurbo(on) {
@@ -439,7 +483,7 @@ export default {
             sounds.reveal();
             break;
           case 'win':
-            save.inProgress = null;
+            clearProgress();
             endTimer = setTimeout(showWin, 900);
             break;
           case 'lose':
@@ -510,7 +554,9 @@ export default {
     const ip = save.inProgress;
     const jump = +new URLSearchParams(location.search).get('level'); // ?level=N to jump (testing)
     if (jump > 0) save.level = jump;
-    startLevel(save.level, !jump && ip && ip.level === save.level && (ip.gen || 1) === LEVEL_GEN ? ip.sim : null);
+    const dailyParam = new URLSearchParams(location.search).get('daily'); // ?daily=YYYY-MM-DD opens that day's puzzle
+    if (isDate(dailyParam)) startLevel(dailyParam);
+    else startLevel(save.level, !jump && ip && ip.level === save.level && (ip.gen || 1) === LEVEL_GEN ? ip.sim : null);
     raf = requestAnimationFrame(loop);
 
     return {

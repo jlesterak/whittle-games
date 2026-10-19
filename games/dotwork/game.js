@@ -473,7 +473,7 @@ export default {
       save.daily = winDaily(save, level.daily, stars).daily;
       ctx.store.set(save);
       sounds.win();
-      const streak = currentStreak(save.daily, localDate());
+      const streak = currentStreak(save.daily, level.daily); // as of the puzzle's day
       overlay = el(
         'div',
         { class: 'po-end po-win' },
