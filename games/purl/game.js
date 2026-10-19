@@ -412,11 +412,14 @@ export default {
     }
 
     function openSettings() {
+      // While a won level waits for its win screen (up to ~2 s), switching would cancel the pending win and lose it,
+      // so these only close the panel then (E2 verifier). The win screen's own buttons run after the win is recorded.
+      const unlessWon = (fn) => (close) => (close(), sim.status !== 'won' && fn());
       ctx.openSettings([
-        { label: 'Restart level', onClick: (close) => (close(), restart()) },
+        { label: 'Restart level', onClick: unlessWon(restart) },
         level.daily
-          ? { label: 'Back to levels', onClick: (close) => (close(), backToLevels()) }
-          : { label: "Today's puzzle", onClick: (close) => (close(), startToday()) },
+          ? { label: 'Back to levels', onClick: unlessWon(backToLevels) }
+          : { label: "Today's puzzle", onClick: unlessWon(startToday) },
       ]);
     }
 
