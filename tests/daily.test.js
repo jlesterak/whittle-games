@@ -74,6 +74,7 @@ test('streak: consecutive days count, a gap restarts it, replaying a day keeps t
   assert.equal(s.daily.lastDate, '2026-01-05');
   assert.equal(s.daily.streak, 1);
   assert.equal(s.daily.last['2026-01-03'], 1);
+  assert.equal(winDaily({ daily: freshDaily() }, '2026-02-01', NaN).daily.last['2026-02-01'], 1);
 });
 
 test(`only the last ${DAILY_KEEP} days are kept; broken saves clean up without throwing`, () => {

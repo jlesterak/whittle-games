@@ -53,7 +53,8 @@ export function winDaily(save, date, stars) {
     d.streak = d.lastDate === dayBefore(date) ? d.streak + 1 : 1;
     d.lastDate = date;
   }
-  d.last[date] = Math.max(d.last[date] || 0, Math.max(1, Math.min(3, stars)));
+  const st = Number.isFinite(stars) ? Math.max(1, Math.min(3, Math.round(stars))) : 1;
+  d.last[date] = Math.max(d.last[date] || 0, st);
   for (const k of Object.keys(d.last).sort().slice(0, -DAILY_KEEP)) delete d.last[k];
   d.inProgress = null;
   return { ...save, daily: d };

@@ -130,6 +130,7 @@ export default {
 
     // n: a campaign level number, or a 'YYYY-MM-DD' date for that day's daily puzzle
     function startLevel(n, resume) {
+      if (level && board) persist(); // save the level being left (taps only save every 5 s), daily or campaign
       timers.forEach(clearTimeout);
       timers = [];
       closeOverlay();
@@ -473,7 +474,7 @@ export default {
       save.daily = winDaily(save, level.daily, stars).daily;
       ctx.store.set(save);
       sounds.win();
-      const streak = currentStreak(save.daily, level.daily); // as of the puzzle's day
+      const streak = currentStreak(save.daily, save.daily.lastDate); // the streak as it now stands
       overlay = el(
         'div',
         { class: 'po-end po-win' },
