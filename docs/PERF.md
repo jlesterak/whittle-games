@@ -72,5 +72,16 @@ PLAN.md tracks them.
 
 Add `?fps` to any URL (for example `?fps&autoplay=1&level=60#/beadloom`) for a small overlay at the middle of the
 left edge: median fps over the last 2 s and the slow end ("slow 5%": 1000 / the 95th percentile frame interval).
-It uses the same `frameStats` as `--perf` (`core/fps.js`), so the numbers compare directly. The fixes in P7b wait for
-these phone numbers (P7bh).
+It uses the same `frameStats` as `--perf` (`core/fps.js`), so the numbers compare directly.
+
+Owner's phone, 2026-10-20, read off the overlay by the owner (P7bh):
+
+| Page | Median fps | Slow 5% fps |
+|---|---|---|
+| `?fps&autoplay=1&level=60#/beadloom` | 60 | 60 |
+| `?fps&autoplay=1#/purl` | 60 | 60 |
+| `?fps&autoplay=1&level=208#/dotwork` | 60 | 60 |
+
+All three hold 60 fps (the display's refresh rate) even at the slow end, well over the 50 fps budget. So the
+sandbox's low numbers were software rasterisation, as expected, and the P7b fixes (Beadloom row sprites, a stacked
+static canvas) are not needed. They stay written down in PLAN.md P7b in case a slower phone shows a drop.

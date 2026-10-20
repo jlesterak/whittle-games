@@ -9,9 +9,6 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
-- P7b [BLOCKED: needs P7bh phone numbers] ?fps overlay done (core/fps.js, shared with --perf); fixes wait for the phone
-- P7bh [HUMAN] Read the frame rate on the phone: open `?fps&autoplay=1&level=60#/beadloom`, `#/purl` and
-  `?fps&autoplay=1&level=208#/dotwork`, write median / slow-5% numbers in the Inbox
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
 - E3 Farkle
@@ -20,6 +17,9 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-10-20: P7b + P7bh phone frame rate: owner read the ?fps overlay on the phone: Beadloom level 60, Purl and
+  Dotwork level 208 all 60 fps median and 60 slow 5% (docs/PERF.md). Over the 50 fps budget, so no fixes needed;
+  the fix ideas stay in PLAN.md P7b
 - 2026-10-19: E2 daily puzzle (Dotwork, Beadloom, Purl): date-seeded mid-difficulty level, own save slot, streak and
   30 days (core/daily.js); campaign progress untouched in real play (lose, restart, switch, back, mid-win). Five fresh
   verifiers; four found real ways to lose progress, all fixed (clearInProgress, save-before-switch, win guard)
