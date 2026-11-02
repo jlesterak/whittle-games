@@ -31,3 +31,13 @@ test('ludo: a game in progress, nothing once it is over', () => {
   assert.equal(s({ game: { phase: 'over' } }), null);
   for (const b of MALFORMED) assert.equal(s(b), null);
 });
+
+test('farkle: game in progress, then the fewest turns to 10,000, else to a shorter target', () => {
+  const s = summary('farkle');
+  assert.equal(s({ game: null, best: { 10000: [], 5000: [], 2500: [] } }), null);
+  assert.equal(s({ game: { over: false, turn: { phase: 'pick' } }, best: {} }), 'Game in progress');
+  assert.equal(s({ game: { over: true }, best: { 10000: [{ turns: 14 }, { turns: 19 }], 5000: [{ turns: 6 }] } }), 'Best 14 turns');
+  assert.equal(s({ game: null, best: { 10000: [], 5000: [{ turns: 9 }, { turns: 7 }] } }), 'Best 7 turns (5,000)');
+  assert.equal(s({ game: null, best: { 10000: [{ turns: 'x' }, null, { turns: 0 }] } }), null);
+  for (const b of MALFORMED) assert.equal(s(b), null);
+});

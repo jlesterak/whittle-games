@@ -88,7 +88,7 @@ shape fails `validGame()` is kept under `farkle.broken` and the setup screen com
 ## Testing
 
 - `?autoplay` plays human seats with the Hard bot at Fast speed.
-- `?debug` exposes `window.__fk()` -> `{ save, g, seats, pick }`.
+- `?debug` exposes `window.__fk()` -> `{ save, g, pick }`.
 - Unit tests: `tests/farkle-rules.test.js` (every combination under every toggle, the farkle check by brute force,
   keeps, hot dice, entry, the last round, the save shape), `tests/farkle-bot.test.js` (legal play under eight
   rule mixes, the last round, Hard's table against play, Hard beats Easy in at least 70 % of 1000 games).

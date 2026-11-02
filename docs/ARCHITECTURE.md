@@ -13,7 +13,7 @@ the rules for agents are in CLAUDE.md.
 - **Saves are never trusted, and progress is never silently lost.** The record is repaired on read (an
   unreadable one is copied to `whittle:v1:broken` first); `ctx.store.get()` returns a plain object or null; games
   check their blob against a fresh save with `cleanSave()` (puzzle games; numeric strings are read as numbers) or
-  `cleanPlayers()` plus a guarded resume (Yacht, Ludo). Whatever had to be repaired or dropped is first copied with
+  `cleanPlayers()` plus a guarded resume (Yacht, Ludo, Farkle). Whatever had to be repaired or dropped is first copied with
   `ctx.store.keep()` to `<id>.broken` (newest first, three kept). A damaged level in progress is refused whole by
   `SlotSim.load` / the supply's `check()` / Dotwork's `loadBoard`, and the level restarts. If `mount()` still
   throws, the shell shows "could not start" with Export save and Start fresh, which files the blob from before
@@ -109,6 +109,14 @@ tokens), `board.js` (15x15 geometry laid out for red and rotated per corner, the
 with stacks fanned out), `game.js` (setup, play, pass card, game over, save/resume), `sounds.js`.
 Two players sit opposite (red and yellow). Rules, house rules and bot win rates: [ludo.md](games/ludo.md).
 
+### Farkle
+
+`games/farkle/`: `rules.js` (scoring by the best reading of the kept dice, the farkle check, a turn and game as
+JSON-safe state: roll, keep, bank, hot dice, entry minimum, the last round), `bot.js` (Easy greedy, Medium rules of
+thumb, Hard an exact expected-value table over every roll), `game.js` (setup, play, pass card, game over, best turns,
+save/resume), `sounds.js`. Built from the same `core/` pieces and the same stage frame as Yacht.
+Rules, house rules and bot win rates: [farkle.md](games/farkle.md).
+
 ## Testing
 
 - Unit tests: `node --test` (Node 20+). They cover rules, bots, solvers, generators, saves and past bugs, and
@@ -129,7 +137,7 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
   `?debug&level=25#/purl`. Dotwork takes `?level=N`, `?autoplay=1` (fires free arrows) and
   `?debug` (`window.__po()`).
   Yacht takes `?autoplay` (human seats are played by the Hard bot at Fast speed) and `?debug` (`window.__yz()`).
-  Ludo takes the same `?autoplay` and `?debug` (`window.__ludo()`).
+  Ludo takes the same `?autoplay` and `?debug` (`window.__ludo()`); Farkle too (`window.__fk()`).
 
 ## Updates
 

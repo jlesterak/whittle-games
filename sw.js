@@ -6,7 +6,7 @@
 // (the shelf's "Update ready" button) or until every tab of the old version has closed: a running page never
 // mixes old and new files.
 
-const VERSION = '8ad87e42c7e6';
+const VERSION = '3738476138f7';
 const CACHE = `whittle-${VERSION}`;
 // prettier-ignore
 const FILES = [
@@ -53,7 +53,9 @@ const FILES = [
   './games/dotwork/render.js',
   './games/dotwork/sounds.js',
   './games/farkle/bot.js',
+  './games/farkle/game.js',
   './games/farkle/rules.js',
+  './games/farkle/sounds.js',
   './games/index.js',
   './games/ludo/board.js',
   './games/ludo/bot.js',

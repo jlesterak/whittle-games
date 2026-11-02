@@ -39,6 +39,12 @@ const ludoIcon = `<svg viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="
 <path d="M27 27L32 32L27 37Z" fill="#e0473f"/><path d="M27 27L32 32L37 27Z" fill="#35a352"/><path d="M37 27L32 32L37 37Z" fill="#efb22a"/><path d="M27 37L32 32L37 37Z" fill="#3a7bd5"/>
 <g stroke="#fff" stroke-width="2"><circle cx="17.5" cy="17.5" r="4.5" fill="#e0473f"/><circle cx="46.5" cy="46.5" r="4.5" fill="#efb22a"/><circle cx="32" cy="13" r="4" fill="#35a352"/></g></svg>`;
 
+const farkleIcon = `<svg viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#6a3d74"/>
+<g transform="rotate(-10 20 40)"><rect x="6" y="27" width="26" height="26" rx="6" fill="#fbf7ea"/><circle cx="19" cy="40" r="3.4" fill="#1a1d28"/></g>
+<g transform="rotate(12 44 42)"><rect x="32" y="30" width="24" height="24" rx="6" fill="#fbf7ea"/>
+<g fill="#1a1d28"><circle cx="38" cy="36" r="2.6"/><circle cx="50" cy="36" r="2.6"/><circle cx="44" cy="42" r="2.6"/><circle cx="38" cy="48" r="2.6"/><circle cx="50" cy="48" r="2.6"/></g></g>
+<path d="M20 10l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#f4b828"/><path d="M45 8l2 4 4 1-3 3 1 4-4-2-4 2 1-4-3-3 4-1z" fill="#ff8a7a"/></svg>`;
+
 // summary(blob): a short progress label for the shelf card, from the game's save blob, without loading the game.
 // Pure and defensive: a missing or broken blob gives null (no label), never an error.
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -53,6 +59,18 @@ function yachtLabel(b) {
   if (classic > -Infinity) return `Best ${classic}`;
   const triple = best(b.high.triple);
   return triple > -Infinity ? `Best ${triple} (Triple)` : null;
+}
+
+// Farkle: a game in progress, else the solo best (fewest turns) to 10,000, else to a shorter target.
+function farkleLabel(b) {
+  if (inProgress(b)) return 'Game in progress';
+  if (!plain(b) || !plain(b.best)) return null;
+  for (const t of ['10000', '5000', '2500']) {
+    const list = Array.isArray(b.best[t]) ? b.best[t] : [];
+    const best = Math.min(...list.map((e) => (plain(e) && Number.isInteger(e.turns) && e.turns > 0 ? e.turns : Infinity)));
+    if (best < Infinity) return `Best ${best} turns${t === '10000' ? '' : ` (${Number(t).toLocaleString('en-GB')})`}`;
+  }
+  return null;
 }
 
 export const games = [
@@ -95,5 +113,13 @@ export const games = [
     icon: ludoIcon,
     load: () => import('./ludo/game.js'),
     summary: (b) => (inProgress(b) ? 'Game in progress' : null),
+  },
+  {
+    id: 'farkle',
+    title: 'Farkle',
+    blurb: 'Six dice: keep what scores, then push your luck or bank it. Bots, pass-and-play or solo.',
+    icon: farkleIcon,
+    load: () => import('./farkle/game.js'),
+    summary: farkleLabel,
   },
 ];
