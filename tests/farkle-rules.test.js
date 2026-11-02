@@ -197,6 +197,9 @@ test('entry minimum: no bank under it until the first bank', () => {
   g.cur = 0;
   g.turn = { ...newTurn(), dice: [5, 2, 3, 4, 6, 6], phase: 'pick' };
   assert.equal(canBank(g, [0]), true, 'entered players bank any amount');
+  const k = pickGame([1, 1, 1, 5, 2, 3], normRules({ entry: '1000' }));
+  assert.equal(canBank(k, [3]), false, '50 is under 1,000');
+  assert.equal(canBank(k, [0, 1, 2]), true, 'three 1s make exactly 1,000');
 });
 
 test('final round: everyone else gets one more turn, then the top score wins', () => {

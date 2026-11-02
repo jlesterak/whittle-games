@@ -67,6 +67,8 @@ A game keeps the rules it started with; changes apply to the next game.
 - **Measured** (2026-11-02, standard rules, 1000 two-player games from seed 1000, seats swapped every game, a tie
   counts half; `winShare()` in `tests/farkle-bot.test.js`): Hard beats Easy 75.3 %, Medium beats Easy 72.6 %, Hard
   beats Medium 54.9 %. Solo turns to reach 10,000 (300 games each, seeds 0-299): Easy 24.8, Medium 18.7, Hard 17.5.
+  Other seed ranges (from 20000, 50000, 90000) gave 75.3-77.8 %. Shorter games are closer: to 2,500, Hard beats
+  Easy only 62.7 % (seeds from 20000), since a few lucky turns decide them.
   Hard's expected turn from scratch is 600 points (the table's value; played turns agree within the test's bounds).
 
 ## Screens

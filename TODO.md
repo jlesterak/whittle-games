@@ -6,7 +6,6 @@ Item IDs refer to PLAN.md. Agents: update this file in the same commit as the wo
 Owner notes from play-tests (date, game, what). Agents turn each one into a fix or a plan item, then delete it here.
 
 ## [IN PROGRESS]
-- E3 Farkle: spec, rules, bots, game, smoke
 
 ## [PENDING]
 - P6h [HUMAN] Check clipping on the phone
@@ -20,6 +19,8 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-11-02: E3 Farkle: cited rules, 5 house toggles, Easy/Medium/Hard bots (Hard an exact expected-value table;
+  beats Easy 75.3 % of 1000 games), setup/play/pass/game over/solo best turns, shelf label. Fresh verifier PASS
 - 2026-10-19: E2 daily puzzle (Dotwork, Beadloom, Purl): date-seeded mid-difficulty level, own save slot, streak and
   30 days (core/daily.js); campaign progress untouched in real play (lose, restart, switch, back, mid-win). Five fresh
   verifiers; four found real ways to lose progress, all fixed (clearInProgress, save-before-switch, win guard)
