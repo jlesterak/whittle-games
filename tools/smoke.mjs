@@ -42,6 +42,7 @@ const device = (vp) => {
 const STEPS = {
   yacht: [{ tap: 'Start' }],
   ludo: [{ tap: 'Start' }],
+  farkle: [{ tap: 'Start' }],
 };
 
 // Messages that are not bugs in the app.
@@ -657,8 +658,8 @@ async function perfCheck(browser, base, only) {
 // control; the Settings button opens its dialog with Enter and with Space, the dialog takes focus, and Escape closes it
 // and puts focus back. On a phone page, each game plays itself for a moment, then the back gesture (history.back())
 // goes to the shelf and forward reopens it (with frames and timers stopped): the game must be in exactly the state it was in.
-const KEYBOARD_ROLL = { yacht: ['Roll'], ludo: ['Roll the die'] };
-const HOOKS = { beadloom: '__bo', purl: '__ck', dotwork: '__po', ludo: '__ludo', yacht: '__yz' };
+const KEYBOARD_ROLL = { yacht: ['Roll'], ludo: ['Roll the die'], farkle: ['Roll'] };
+const HOOKS = { beadloom: '__bo', purl: '__ck', dotwork: '__po', ludo: '__ludo', yacht: '__yz', farkle: '__fk' };
 // slotsort's load() counts a full slot as completed (engines/slotsort/sim.js), so the digest does the same
 const SLOTS = (h) => `(() => { const d = window.${h}().sim.serialize(); const cap = window.${h}().sim.cap;
   d.slots = d.slots.map((sl) => (sl && sl.landed >= cap ? (d.completions++, null) : sl)); return JSON.stringify(d); })()`;
@@ -668,6 +669,7 @@ const DIGEST = {
   dotwork: (h) => `import('./games/dotwork/board.js').then((m) => JSON.stringify(m.serialize(window.${h}().board)))`,
   ludo: (h) => `JSON.stringify(window.${h}().g)`,
   yacht: (h) => `JSON.stringify(window.${h}().g)`,
+  farkle: (h) => `JSON.stringify(window.${h}().g)`,
 };
 
 const LABELS_CHECK = `(() => {
