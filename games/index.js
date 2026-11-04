@@ -39,6 +39,12 @@ const ludoIcon = `<svg viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="
 <path d="M27 27L32 32L27 37Z" fill="#e0473f"/><path d="M27 27L32 32L37 27Z" fill="#35a352"/><path d="M37 27L32 32L37 37Z" fill="#efb22a"/><path d="M27 37L32 32L37 37Z" fill="#3a7bd5"/>
 <g stroke="#fff" stroke-width="2"><circle cx="17.5" cy="17.5" r="4.5" fill="#e0473f"/><circle cx="46.5" cy="46.5" r="4.5" fill="#efb22a"/><circle cx="32" cy="13" r="4" fill="#35a352"/></g></svg>`;
 
+const farkleIcon = `<svg viewBox="0 0 64 64"><rect x="2" y="2" width="60" height="60" rx="16" fill="#6b3c26"/>
+<rect x="8" y="30" width="48" height="26" rx="8" fill="#2f5e3f"/>
+<g transform="rotate(-10 22 26)"><rect x="8" y="12" width="28" height="28" rx="7" fill="#fbf7ea"/><g fill="#c0392b"><circle cx="22" cy="26" r="4"/></g></g>
+<g transform="rotate(12 44 34)"><rect x="31" y="21" width="26" height="26" rx="7" fill="#fbf7ea"/><g fill="#1a1d28"><circle cx="38" cy="28" r="2.6"/><circle cx="50" cy="28" r="2.6"/><circle cx="44" cy="34" r="2.6"/><circle cx="38" cy="40" r="2.6"/><circle cx="50" cy="40" r="2.6"/></g></g>
+<rect x="10" y="48" width="22" height="8" rx="4" fill="#f4b828"/></svg>`;
+
 // summary(blob): a short progress label for the shelf card, from the game's save blob, without loading the game.
 // Pure and defensive: a missing or broken blob gives null (no label), never an error.
 const plain = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -53,6 +59,16 @@ function yachtLabel(b) {
   if (classic > -Infinity) return `Best ${classic}`;
   const triple = best(b.high.triple);
   return triple > -Infinity ? `Best ${triple} (Triple)` : null;
+}
+
+function farkleLabel(b) {
+  if (inProgress(b)) return 'Game in progress';
+  if (!plain(b) || !plain(b.high)) return null;
+  const best = (list) => Math.min(...(Array.isArray(list) ? list : []).map((e) => (plain(e) && Number.isInteger(e.turns) && e.turns > 0 ? e.turns : Infinity)));
+  const full = best(b.high['10000']);
+  if (full < Infinity) return `Best ${full} turns`;
+  const short = best(b.high['5000']);
+  return short < Infinity ? `Best ${short} turns (5,000)` : null;
 }
 
 export const games = [
@@ -95,5 +111,13 @@ export const games = [
     icon: ludoIcon,
     load: () => import('./ludo/game.js'),
     summary: (b) => (inProgress(b) ? 'Game in progress' : null),
+  },
+  {
+    id: 'farkle',
+    title: 'Farkle',
+    blurb: 'Six dice, push your luck: bank your points before a roll scores nothing. Bots or pass-and-play.',
+    icon: farkleIcon,
+    load: () => import('./farkle/game.js'),
+    summary: farkleLabel,
   },
 ];

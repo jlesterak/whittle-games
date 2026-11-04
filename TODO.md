@@ -14,12 +14,17 @@ Owner notes from play-tests (date, game, what). Agents turn each one into a fix 
   `?fps&autoplay=1&level=208#/dotwork`, write median / slow-5% numbers in the Inbox
 - P9 [HUMAN] Play-test on the phone (sound mix, haptics, super-slow speed, difficulty curve, Ludo powerups)
 - P10 [HUMAN] Beadloom recordings: a fill-booster use and a lift on a locked crate
-- E3 Farkle
+- E3h [HUMAN] Play-test Farkle on the phone (`#/farkle`): picking dice, Roll / Bank labels, the Farkle and Hot dice
+  banners, pass-and-play, a solo run to 5,000, Easy / Medium / Hard feel; notes in the Inbox
 - E4 Backgammon
 - E5 Cards core and Klondike
 - X1 Install guide and a live-site check
 
 ## [COMPLETED]
+- 2026-11-04: E3 Farkle: docs/games/farkle.md (base table cited, toggles: target, entry minimum, three pairs,
+  four of a kind flat/doubling, hot dice), rules.js best-split scoring + tests of every combination and toggle,
+  bot.js (Hard from a computed expected-value table; Hard beats Easy 764/1000 seeded games), game.js, sounds.js,
+  shelf entry with best-run label, precache, smoke (play, --a11y, --saves) ok. Fresh verifier run
 - 2026-10-19: E2 daily puzzle (Dotwork, Beadloom, Purl): date-seeded mid-difficulty level, own save slot, streak and
   30 days (core/daily.js); campaign progress untouched in real play (lose, restart, switch, back, mid-win). Five fresh
   verifiers; four found real ways to lose progress, all fixed (clearInProgress, save-before-switch, win guard)

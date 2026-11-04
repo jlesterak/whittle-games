@@ -15,6 +15,8 @@ status is in [TODO.md](TODO.md).
   pass-and-play, solo high scores.
 - **Ludo:** race four tokens home. House-rule toggles including a Powerups board, 2-4 seats of humans and bots,
   pass-and-play.
+- **Farkle:** six dice, push your luck, bank before a roll scores nothing. House-rule toggles, 1-4 seats of humans
+  and bots, pass-and-play, solo best runs.
 
 Beadloom and Purl share a slot-sort engine; every game shares `core/` (stage fit, saves, sound, seats, dice).
 

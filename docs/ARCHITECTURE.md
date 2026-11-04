@@ -109,6 +109,14 @@ tokens), `board.js` (15x15 geometry laid out for red and rotated per corner, the
 with stacks fanned out), `game.js` (setup, play, pass card, game over, save/resume), `sounds.js`.
 Two players sit opposite (red and yellow). Rules, house rules and bot win rates: [ludo.md](games/ludo.md).
 
+### Farkle
+
+`games/farkle/`: `rules.js` (best-split scoring of a keep, keep options, Farkle check, the turn with hot dice and
+the entry minimum, the end of the game), `bot.js` (Hard: exact expected-value table over dice left x points
+held; Medium and Easy bank at fixed thresholds), `game.js` (setup, play, pass card, game over, best runs,
+save/resume), `sounds.js`. Built from the same `core/` pieces as Yacht. Rules, house rules and bot win rates:
+[farkle.md](games/farkle.md).
+
 ## Testing
 
 - Unit tests: `node --test` (Node 20+). They cover rules, bots, solvers, generators, saves and past bugs, and
@@ -129,7 +137,7 @@ Two players sit opposite (red and yellow). Rules, house rules and bot win rates:
   `?debug&level=25#/purl`. Dotwork takes `?level=N`, `?autoplay=1` (fires free arrows) and
   `?debug` (`window.__po()`).
   Yacht takes `?autoplay` (human seats are played by the Hard bot at Fast speed) and `?debug` (`window.__yz()`).
-  Ludo takes the same `?autoplay` and `?debug` (`window.__ludo()`).
+  Ludo takes the same `?autoplay` and `?debug` (`window.__ludo()`); Farkle too (`window.__fk()`).
 
 ## Updates
 
