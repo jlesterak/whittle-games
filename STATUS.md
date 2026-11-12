@@ -1,4 +1,4 @@
-# Status (2026-11-04)
+# Status (2026-11-11)
 Whittle (offline game shelf PWA): Beadloom, Purl, Dotwork, the daily puzzle (E2) and Farkle (E3) are in; owner play-tests on the phone are the gate.
 Waiting on Jake [HUMAN]: phone clipping check (P6h), frame-rate numbers (P7bh), the P9 play-test, Beadloom recordings (P10), Farkle play-test (E3h).
 Next plan items: E4 Backgammon, E5 Cards core + Klondike, X1 install guide.
